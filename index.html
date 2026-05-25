@@ -334,6 +334,21 @@
             text-align: right;
         }
 
+        .btn-delete {
+            background: rgba(230, 57, 70, 0.22);
+            border: 1px solid rgba(230, 57, 70, 0.44);
+            color: #ff9aa1;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background 0.18s ease;
+        }
+
+        .btn-delete:hover {
+            background: rgba(230, 57, 70, 0.38);
+        }
+
         .tag {
             display: inline-flex;
             align-items: center;
@@ -521,6 +536,7 @@
                             <th>Tipo</th>
                             <th>Categoria</th>
                             <th>Valor</th>
+                            <th>Ação</th>
                         </tr>
                     </thead>
                     <tbody id="lancamentosTabela">
@@ -598,11 +614,13 @@
 
             totalReceita.textContent = formatarDinheiro(receita);
             totalDespesa.textContent = formatarDinheiro(despesa + pagamentos);
-            totalDividas.textContent = formatarDinheiro(dividas);
+            // Dívidas pendentes = dívidas registradas menos o que já foi pago
+            const dividasPendentes = Math.max(0, dividas - pagamentos);
+            totalDividas.textContent = formatarDinheiro(dividasPendentes);
             const saldoAtual = receita - despesa - pagamentos;
             saldo.textContent = formatarDinheiro(saldoAtual);
 
-            const guardar = Math.max(0, dividas - receita + pagamentos);
+            const guardar = Math.max(0, dividasPendentes);
             paraGuardar.textContent = formatarDinheiro(guardar);
             atualizarIndicadoresHoje();
             atualizarCategoriaResumo();
@@ -670,12 +688,19 @@
             return span;
         }
 
+        function deletarLancamento(index) {
+            lancamentos.splice(index, 1);
+            salvarLocal();
+            renderizarTabela();
+            atualizarResumo();
+        }
+
         function renderizarTabela() {
             lancamentosTabela.innerHTML = '';
             const itens = getLancamentosFiltrados();
             if (itens.length === 0) {
                 const vazio = document.createElement('tr');
-                vazio.innerHTML = '<td colspan="5" style="text-align:center; color:var(--muted);">Nenhum lançamento encontrado</td>';
+                vazio.innerHTML = '<td colspan="6" style="text-align:center; color:var(--muted);">Nenhum lançamento encontrado</td>';
                 lancamentosTabela.appendChild(vazio);
                 return;
             }
@@ -684,12 +709,14 @@
                 .slice()
                 .sort((a, b) => new Date(b.data) - new Date(a.data))
                 .forEach(l => {
+                    const index = lancamentos.indexOf(l);
                     const row = document.createElement('tr');
                     const tdData = document.createElement('td');
                     const tdDescricao = document.createElement('td');
                     const tdTipo = document.createElement('td');
                     const tdCategoria = document.createElement('td');
                     const tdValor = document.createElement('td');
+                    const tdAcao = document.createElement('td');
 
                     tdData.textContent = l.data;
                     tdDescricao.textContent = l.descricao || 'Sem descrição';
@@ -699,11 +726,18 @@
                     tdValor.style.fontWeight = '700';
                     tdValor.style.color = l.tipo === 'receita' ? '#8bffcb' : '#ff9aa1';
 
+                    const btnDel = document.createElement('button');
+                    btnDel.className = 'btn-delete';
+                    btnDel.textContent = 'Deletar';
+                    btnDel.onclick = () => deletarLancamento(index);
+                    tdAcao.appendChild(btnDel);
+
                     row.appendChild(tdData);
                     row.appendChild(tdDescricao);
                     row.appendChild(tdTipo);
                     row.appendChild(tdCategoria);
                     row.appendChild(tdValor);
+                    row.appendChild(tdAcao);
                     lancamentosTabela.appendChild(row);
                 });
         }
