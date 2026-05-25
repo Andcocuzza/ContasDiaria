@@ -7,7 +7,8 @@
     <meta name="theme-color" content="#07180a" />
     <link rel="manifest" href="manifest.json" />
     <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <title>ContaDiárias</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>ContasDiária</title>
     <style>
         :root {
             --bg: #07180a;
@@ -349,6 +350,94 @@
             background: rgba(230, 57, 70, 0.38);
         }
 
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 18px;
+            border-bottom: 1px solid rgba(248, 212, 75, 0.16);
+            overflow-x: auto;
+        }
+
+        .tab-button {
+            padding: 12px 18px;
+            border: none;
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.95rem;
+            border-bottom: 3px solid transparent;
+            transition: all 0.18s ease;
+        }
+
+        .tab-button.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .tab-button:hover {
+            color: var(--text);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 24px;
+        }
+
+        .recurringDebtItem {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(248, 212, 75, 0.14);
+        }
+
+        .recurringDebtInfo {
+            flex: 1;
+        }
+
+        .recurringDebtInfo strong {
+            display: block;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+
+        .recurringDebtInfo small {
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-left: 8px;
+        }
+
+        .btn-small.danger {
+            background: rgba(230, 57, 70, 0.22);
+            color: #ff9aa1;
+        }
+
+        .btn-small.success {
+            background: rgba(47, 158, 66, 0.22);
+            color: #8bffcb;
+        }
+
         .tag {
             display: inline-flex;
             align-items: center;
@@ -476,7 +565,16 @@
             </div>
         </section>
 
-        <section class="card" aria-label="Formulário de lançamento diário">
+        <section class="card" aria-label="Navegação de seções">
+            <div class="tabs">
+                <button class="tab-button active" onclick="abrirAba('lancamentos')">Lançamentos</button>
+                <button class="tab-button" onclick="abrirAba('recurentes')">Débitos Recorrentes</button>
+                <button class="tab-button" onclick="abrirAba('relatorios')">Relatórios</button>
+                <button class="tab-button" onclick="abrirAba('configuracao')">Backup</button>
+            </div>
+        </section>
+
+        <section class="card tab-content active" id="aba-lancamentos" aria-label="Seção de lançamentos">
             <h2 style="margin-top:0;">Novo lançamento</h2>
             <div class="form-row">
                 <label>
@@ -523,10 +621,8 @@
                 <button class="clear" id="btnLimpar">Limpar registros</button>
                 <button class="clear" id="btnExportar">Exportar CSV</button>
             </div>
-        </section>
 
-        <section class="card" aria-label="Tabela de lançamentos">
-            <h2 style="margin-top:0;">Histórico</h2>
+            <h2 style="margin-top:24px;">Histórico</h2>
             <div style="overflow-x:auto;">
                 <table>
                     <thead>
@@ -541,10 +637,102 @@
                     </thead>
                     <tbody id="lancamentosTabela">
                         <tr>
-                            <td colspan="5" style="text-align:center; color:var(--muted);">Nenhum lançamento ainda</td>
+                            <td colspan="6" style="text-align:center; color:var(--muted);">Nenhum lançamento ainda</td>
                         </tr>
                     </tbody>
                 </table>
+            </div>
+        </section>
+
+        <section class="card tab-content" id="aba-recurentes" aria-label="Seção de débitos recorrentes">
+            <h2 style="margin-top:0;">Débitos Recorrentes Mensais</h2>
+            <p style="color:var(--muted); font-size:0.95rem; margin-bottom:18px;">Configure dívidas que se repetem todo
+                mês (aluguel, internet, etc). Elas aparecerão automaticamente no 1º dia do mês.</p>
+            <div class="form-row">
+                <label>
+                    Descrição
+                    <input type="text" id="inputRecDescricao" placeholder="Ex: Aluguel, Internet, Água..." />
+                </label>
+                <label>
+                    Valor mensal
+                    <input type="number" id="inputRecValor" step="0.01" placeholder="0.00" />
+                </label>
+            </div>
+            <div class="form-row">
+                <label>
+                    Categoria
+                    <select id="inputRecCategoria">
+                        <option value="" disabled selected>Selecione a categoria</option>
+                        <option value="Casa">Casa (Aluguel)</option>
+                        <option value="Utilidades">Utilidades (Água, Luz, etc)</option>
+                        <option value="Internet">Internet</option>
+                        <option value="Trabalho">Trabalho</option>
+                        <option value="Saúde">Saúde</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+                </label>
+            </div>
+            <div class="buttons">
+                <button id="btnAdicionarRecorrente">Adicionar Débito Recorrente</button>
+                <button class="clear" id="btnAplicarRecorrentes">Aplicar Débitos de Este Mês</button>
+            </div>
+            <h3 style="margin-top:24px; color:var(--accent);">Débitos Cadastrados</h3>
+            <div id="listaRecorrentes">
+                <p style="color:var(--muted); text-align:center;">Nenhum débito recorrente cadastrado</p>
+            </div>
+        </section>
+
+        <section class="card tab-content" id="aba-relatorios" aria-label="Seção de relatórios">
+            <h2 style="margin-top:0;">Relatórios e Análise</h2>
+            <div style="margin-bottom:24px;">
+                <label style="display:flex; gap:12px; align-items:center; margin-bottom:18px; color:var(--muted);">
+                    Período (últimos dias)
+                    <input type="number" id="periodoRelatorio" min="7" max="365" value="30" style="width:80px;" />
+                </label>
+            </div>
+            <div class="chart-container">
+                <canvas id="chartGastos"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="chartCategories"></canvas>
+            </div>
+            <div
+                style="background:rgba(255,255,255,0.04); padding:18px; border-radius:16px; border:1px solid rgba(248,212,75,0.14);">
+                <h3 style="margin-top:0; color:var(--accent);">Resumo do Período</h3>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px;">
+                    <div>
+                        <small style="color:var(--muted);">Total Entradas</small>
+                        <strong style="color:#8bffcb; font-size:1.3rem;" id="relReceitaTotal">R$ 0,00</strong>
+                    </div>
+                    <div>
+                        <small style="color:var(--muted);">Total Saídas</small>
+                        <strong style="color:#ff9aa1; font-size:1.3rem;" id="relDespesaTotal">R$ 0,00</strong>
+                    </div>
+                    <div>
+                        <small style="color:var(--muted);">Resultado Líquido</small>
+                        <strong style="color:var(--accent); font-size:1.3rem;" id="relResultado">R$ 0,00</strong>
+                    </div>
+                    <div>
+                        <small style="color:var(--muted);">Ticket Médio</small>
+                        <strong style="color:var(--accent); font-size:1.3rem;" id="relMediaGasto">R$ 0,00</strong>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="card tab-content" id="aba-configuracao" aria-label="Seção de backup">
+            <h2 style="margin-top:0;">Backup e Configuração</h2>
+            <p style="color:var(--muted); margin-bottom:18px;">Faça backup dos seus dados para recuperar posteriormente
+                ou em outro dispositivo.</p>
+            <div class="buttons">
+                <button id="btnBackupDownload">📥 Baixar Backup (JSON)</button>
+                <button class="clear" id="btnBackupUpload">📤 Restaurar do Backup</button>
+            </div>
+            <input type="file" id="inputBackupFile" style="display:none;" accept=".json" />
+            <div
+                style="background:rgba(28,100,52,0.16); padding:14px; border-radius:12px; border:1px solid rgba(40,160,80,0.22); margin-top:18px;">
+                <small style="color:var(--muted);">✓ Seu backup é salvo localmente no navegador automaticamente a cada
+                    lançamento.</small>
             </div>
         </section>
     </main>
@@ -847,6 +1035,7 @@
             atualizarResumo();
         });
     </script>
+    <script src="features.js"></script>
 </body>
 
 </html>
