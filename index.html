@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#07180a" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <title>ContaDiárias</title>
+    <style>
+        :root {
+            --bg: #07180a;
+            --card: rgba(0, 0, 0, 0.28);
+            --text: #f7f0c8;
+            --accent: #f8d44b;
+            --danger: #e63946;
+            --success: #2f9e42;
+            --muted: #d7cf9e;
+            --highlight: #c32f27;
+            --shadow: rgba(0, 0, 0, 0.24);
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        select {
+            background-image: linear-gradient(45deg, transparent 50%, #f7f0c8 50%), linear-gradient(135deg, #f7f0c8 50%, transparent 50%);
+            background-position: calc(100% - 18px) calc(50% - 3px), calc(100% - 12px) calc(50% - 3px);
+            background-size: 7px 7px, 7px 7px;
+            background-repeat: no-repeat;
+            padding-right: 40px;
+            /* texto branco por padrão para combinar com fundo escuro */
+            color: var(--text);
+            -webkit-text-fill-color: var(--text);
+        }
+
+        /* Quando o select estiver ativo/aberto (focus/active), mostrar texto preto
+           (a janela de opções costuma ter fundo claro em dispositivos móveis). */
+        select:focus,
+        select:active {
+            color: #08210b;
+            -webkit-text-fill-color: #08210b;
+        }
+
+        /* Estilizar opções; lembrando que muitos navegadores limitam customizações em <option>. */
+        select option {
+            color: #08210b;
+            background: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            /* Fundo reggae mais escuro */
+            background: linear-gradient(135deg, #122813 0%, #2f6a2f 35%, #d4b83b 62%, #8f211f 100%);
+            color: var(--text);
+        }
+
+        header {
+            position: relative;
+            padding: 30px 16px 16px;
+            text-align: center;
+            border-bottom: 1px solid rgba(248, 212, 75, 0.16);
+            backdrop-filter: blur(10px);
+        }
+
+        header::after {
+            content: 'Registre, planeje e cuide do seu dinheiro com estilo.';
+            display: block;
+            margin-top: 12px;
+            color: rgba(247, 240, 200, 0.78);
+            font-size: 0.95rem;
+        }
+
+        .banner {
+            display: none;
+            margin: 0 auto 18px;
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: rgba(248, 212, 75, 0.16);
+            color: #fff;
+            border: 1px solid rgba(248, 212, 75, 0.28);
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        .banner.info {
+            background: rgba(28, 100, 52, 0.18);
+            color: #f7f0c8;
+            border-color: rgba(40, 160, 80, 0.28);
+        }
+
+        .banner.warning {
+            background: rgba(195, 47, 39, 0.16);
+            color: #fff;
+            border-color: rgba(195, 47, 39, 0.22);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2.2rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #f8d44b;
+            text-shadow: 0 0 18px rgba(248, 212, 75, 0.35);
+        }
+
+        header p {
+            margin: 8px 0 0;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .container {
+            padding: 16px;
+            max-width: 940px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid rgba(248, 212, 75, 0.22);
+            border-radius: 22px;
+            padding: 22px;
+            margin-bottom: 18px;
+            box-shadow: 0 16px 40px var(--shadow);
+            backdrop-filter: blur(9px);
+        }
+
+        .grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .summary {
+            display: grid;
+            gap: 12px;
+        }
+
+        .summary div {
+            padding: 18px;
+            border-radius: 20px;
+            background: rgba(255, 241, 201, 0.08);
+            border: 1px solid rgba(248, 212, 75, 0.22);
+            color: #fff;
+        }
+
+        .info-grid {
+            display: grid;
+            gap: 14px;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            margin-bottom: 18px;
+        }
+
+        .summary-card {
+            border-radius: 20px;
+            padding: 18px;
+            background: rgba(0, 0, 0, 0.14);
+            border: 1px solid rgba(248, 212, 75, 0.18);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+        }
+
+        .summary-card strong {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.3rem;
+            color: #f8d44b;
+        }
+
+        .summary-card .badge {
+            display: inline-flex;
+            margin-top: 10px;
+            gap: 4px;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(40, 121, 54, 0.22);
+            color: #d7cf9e;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+
+        .filter-panel {
+            display: grid;
+            gap: 12px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            margin-top: 10px;
+        }
+
+        .filter-panel label {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 0.95rem;
+            color: var(--muted);
+        }
+
+        .category-grid {
+            display: grid;
+            gap: 12px;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .category-card {
+            padding: 16px;
+            border-radius: 18px;
+            background: rgba(224, 224, 8, 0.08);
+            border: 1px solid rgba(212, 193, 114, 0.16);
+            color: #eeea10;
+        }
+
+        .category-card strong {
+            display: block;
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+
+        .category-card span {
+            font-size: 0.95rem;
+            color: rgba(178, 224, 10, 0.78);
+        }
+
+        .form-row label {
+            display: flex;
+            flex-direction: column;
+            font-size: 0.95rem;
+            color: var(--muted);
+        }
+
+        input,
+        select,
+        textarea {
+            margin-top: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            padding: 12px 14px;
+            font-size: 1rem;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text);
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        /* Melhor visibilidade das opções e do texto selecionado */
+        select {
+            background-image: linear-gradient(45deg, transparent 50%, #f7f0c8 50%), linear-gradient(135deg, #f7f0c8 50%, transparent 50%);
+            background-position: calc(100% - 18px) calc(50% - 3px), calc(100% - 12px) calc(50% - 3px);
+            background-size: 7px 7px, 7px 7px;
+            background-repeat: no-repeat;
+            padding-right: 40px;
+            /* texto branco por padrão na tela escura */
+            color: var(--text);
+            -webkit-text-fill-color: var(--text);
+        }
+
+        /* opções: texto preto (fundo das opções é normalmente decidido pelo sistema/navegador) */
+        select option {
+            color: #08210b;
+        }
+
+        /* quando o select estiver aberto/ativo, mostrar texto preto para legibilidade */
+        select:focus,
+        select:active {
+            color: #08210b;
+            -webkit-text-fill-color: #08210b;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 70px;
+        }
+
+        button {
+            width: 100%;
+            border: none;
+            border-radius: 16px;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            background: linear-gradient(135deg, #2f9e42, #f8d44b, #c32f27);
+            color: #08210b;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.24);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.06);
+            box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
+        }
+
+        .buttons {
+            display: grid;
+            gap: 10px;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .buttons button.clear {
+            background: rgba(0, 0, 0, 0.16);
+            color: var(--text);
+        }
+
+        .buttons button.clear:hover {
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: none;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 0.95rem;
+        }
+
+        thead {
+            background: rgba(248, 212, 75, 0.14);
+        }
+
+        th,
+        td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            vertical-align: middle;
+        }
+
+        th:last-child,
+        td:last-child {
+            text-align: right;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .tag.receita {
+            background: rgba(102, 255, 179, 0.16);
+            color: #8bffcb;
+        }
+
+        .tag.despesa {
+            background: rgba(255, 107, 107, 0.16);
+            color: #ff9aa1;
+        }
+
+        .tag.divida {
+            background: rgba(255, 201, 63, 0.16);
+            color: #ffe37d;
+        }
+
+        .tag.pago {
+            background: rgba(79, 195, 247, 0.16);
+            color: #b9ebff;
+        }
+
+        @media(max-width: 720px) {
+
+            .grid-2,
+            .info-grid,
+            .category-grid,
+            .filter-panel {
+                grid-template-columns: 1fr;
+            }
+
+            .buttons {
+                grid-template-columns: 1fr;
+            }
+
+            th,
+            td {
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>ContaDiárias</h1>
+        <p>Registre entradas, saídas, débitos e créditos. Veja seu saldo e quanto guardar para pagar dívidas.</p>
+    </header>
+    <div id="mensagemBanner" class="banner warning" hidden></div>
+    <main class="container">
+        <section class="card summary" aria-label="Resumo diário">
+            <div>
+                <strong id="totalReceita">R$ 0,00</strong>
+                Receita total
+            </div>
+            <div>
+                <strong id="totalDespesa">R$ 0,00</strong>
+                Despesa total
+            </div>
+            <div>
+                <strong id="saldo">R$ 0,00</strong>
+                Saldo atual
+            </div>
+            <div>
+                <strong id="totalDividas">R$ 0,00</strong>
+                Dívidas pendentes
+            </div>
+            <div>
+                <strong id="paraGuardar">R$ 0,00</strong>
+                Guardar para pagar dívida
+            </div>
+        </section>
+
+        <section class="card" aria-label="Relatório avançado do dia">
+            <div class="info-grid">
+                <div class="summary-card">
+                    <strong id="resultadoDia">R$ 0,00</strong>
+                    Resultado do dia
+                    <span class="badge">Receitas - Despesas</span>
+                </div>
+                <div class="summary-card">
+                    <strong id="receitaHoje">R$ 0,00</strong>
+                    Receitas hoje
+                </div>
+                <div class="summary-card">
+                    <strong id="despesaHoje">R$ 0,00</strong>
+                    Saídas hoje
+                </div>
+                <div class="summary-card">
+                    <strong id="dividaHoje">R$ 0,00</strong>
+                    Dívidas hoje
+                </div>
+            </div>
+            <div class="filter-panel">
+                <label>
+                    Filtrar por tipo
+                    <select id="filtroTipo">
+                        <option value="todos">Todos</option>
+                        <option value="receita">Receita</option>
+                        <option value="despesa">Despesa</option>
+                        <option value="divida">Dívida</option>
+                        <option value="pagamento">Pagamento</option>
+                    </select>
+                </label>
+                <label>
+                    Buscar descrição
+                    <input type="search" id="filtroBusca" placeholder="Procure por supermercado, luz, salário..." />
+                </label>
+            </div>
+        </section>
+
+        <section class="card" aria-label="Resumo por categoria">
+            <h2 style="margin-top:0;">Resumo por categoria</h2>
+            <div class="category-grid" id="categoriasResumo">
+                <div class="category-card"><strong>Sem dados</strong><span>Adicione lançamentos para ver o resumo por
+                        categoria.</span></div>
+            </div>
+        </section>
+
+        <section class="card" aria-label="Formulário de lançamento diário">
+            <h2 style="margin-top:0;">Novo lançamento</h2>
+            <div class="form-row">
+                <label>
+                    Data
+                    <input type="date" id="inputData" />
+                </label>
+                <label>
+                    Valor
+                    <input type="number" id="inputValor" step="0.01" placeholder="0.00" />
+                </label>
+            </div>
+            <div class="form-row">
+                <label>
+                    Tipo
+                    <select id="inputTipo">
+                        <option value="" disabled selected>Selecione o tipo</option>
+                        <option value="receita">Receita</option>
+                        <option value="despesa">Despesa</option>
+                        <option value="divida">Dívida</option>
+                        <option value="pagamento">Pagamento</option>
+                    </select>
+                </label>
+                <label>
+                    Descrição
+                    <input type="text" id="inputDescricao" placeholder="Ex: Compra, Salário, Conta de luz" />
+                </label>
+            </div>
+            <div class="form-row">
+                <label>
+                    Categoria
+                    <select id="inputCategoria">
+                        <option value="" disabled selected>Selecione a categoria</option>
+                        <option value="Alimentação">Alimentação</option>
+                        <option value="Transporte">Transporte</option>
+                        <option value="Casa">Casa</option>
+                        <option value="Trabalho">Trabalho</option>
+                        <option value="Saúde">Saúde</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+                </label>
+            </div>
+            <div class="buttons">
+                <button id="btnSalvar">Salvar lançamento</button>
+                <button class="clear" id="btnLimpar">Limpar registros</button>
+                <button class="clear" id="btnExportar">Exportar CSV</button>
+            </div>
+        </section>
+
+        <section class="card" aria-label="Tabela de lançamentos">
+            <h2 style="margin-top:0;">Histórico</h2>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Descrição</th>
+                            <th>Tipo</th>
+                            <th>Categoria</th>
+                            <th>Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lancamentosTabela">
+                        <tr>
+                            <td colspan="5" style="text-align:center; color:var(--muted);">Nenhum lançamento ainda</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const STORAGE_KEY = 'contadiarias-lancamentos';
+        const inputData = document.getElementById('inputData');
+
+        function storageDisponivel() {
+            try {
+                const chaveTeste = '__contadiarias_storage_test__';
+                localStorage.setItem(chaveTeste, chaveTeste);
+                localStorage.removeItem(chaveTeste);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function mostrarMensagem(texto, tipo = 'warning') {
+            const banner = document.getElementById('mensagemBanner');
+            if (!banner) return;
+            banner.textContent = texto;
+            banner.className = `banner ${tipo}`;
+            banner.hidden = false;
+        }
+        const inputValor = document.getElementById('inputValor');
+        const inputTipo = document.getElementById('inputTipo');
+        const inputDescricao = document.getElementById('inputDescricao');
+        const inputCategoria = document.getElementById('inputCategoria');
+        const btnSalvar = document.getElementById('btnSalvar');
+        const btnLimpar = document.getElementById('btnLimpar');
+        const btnExportar = document.getElementById('btnExportar');
+        const filtroTipo = document.getElementById('filtroTipo');
+        const filtroBusca = document.getElementById('filtroBusca');
+        const totalReceita = document.getElementById('totalReceita');
+        const totalDespesa = document.getElementById('totalDespesa');
+        const saldo = document.getElementById('saldo');
+        const totalDividas = document.getElementById('totalDividas');
+        const paraGuardar = document.getElementById('paraGuardar');
+        const resultadoDia = document.getElementById('resultadoDia');
+        const receitaHoje = document.getElementById('receitaHoje');
+        const despesaHoje = document.getElementById('despesaHoje');
+        const dividaHoje = document.getElementById('dividaHoje');
+        const categoriasResumo = document.getElementById('categoriasResumo');
+        const lancamentosTabela = document.getElementById('lancamentosTabela');
+
+        let lancamentos = [];
+
+        function formatarDinheiro(valor) {
+            return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        function atualizarResumo() {
+            const receita = lancamentos
+                .filter(l => l.tipo === 'receita')
+                .reduce((sum, l) => sum + l.valor, 0);
+            const despesa = lancamentos
+                .filter(l => l.tipo === 'despesa')
+                .reduce((sum, l) => sum + l.valor, 0);
+            const dividas = lancamentos
+                .filter(l => l.tipo === 'divida')
+                .reduce((sum, l) => sum + l.valor, 0);
+            const pagamentos = lancamentos
+                .filter(l => l.tipo === 'pagamento')
+                .reduce((sum, l) => sum + l.valor, 0);
+
+            totalReceita.textContent = formatarDinheiro(receita);
+            totalDespesa.textContent = formatarDinheiro(despesa + pagamentos);
+            totalDividas.textContent = formatarDinheiro(dividas);
+            const saldoAtual = receita - despesa - pagamentos;
+            saldo.textContent = formatarDinheiro(saldoAtual);
+
+            const guardar = Math.max(0, dividas - receita + pagamentos);
+            paraGuardar.textContent = formatarDinheiro(guardar);
+            atualizarIndicadoresHoje();
+            atualizarCategoriaResumo();
+        }
+
+        function getLancamentosFiltrados() {
+            const tipo = filtroTipo.value;
+            const busca = filtroBusca.value.trim().toLowerCase();
+            return lancamentos.filter(l => {
+                const filtraTipo = tipo === 'todos' || l.tipo === tipo;
+                const filtraBusca = !busca ||
+                    (l.descricao || '').toLowerCase().includes(busca) ||
+                    l.categoria.toLowerCase().includes(busca);
+                return filtraTipo && filtraBusca;
+            });
+        }
+
+        function atualizarIndicadoresHoje() {
+            const hoje = new Date().toISOString().slice(0, 10);
+            const hojeLancamentos = lancamentos.filter(l => l.data === hoje);
+            const receita = hojeLancamentos
+                .filter(l => l.tipo === 'receita')
+                .reduce((sum, l) => sum + l.valor, 0);
+            const despesa = hojeLancamentos
+                .filter(l => l.tipo === 'despesa' || l.tipo === 'pagamento')
+                .reduce((sum, l) => sum + l.valor, 0);
+            const divida = hojeLancamentos
+                .filter(l => l.tipo === 'divida')
+                .reduce((sum, l) => sum + l.valor, 0);
+            const resultado = receita - despesa;
+
+            resultadoDia.textContent = formatarDinheiro(resultado);
+            receitaHoje.textContent = formatarDinheiro(receita);
+            despesaHoje.textContent = formatarDinheiro(despesa);
+            dividaHoje.textContent = formatarDinheiro(divida);
+        }
+
+        function atualizarCategoriaResumo() {
+            const totalPorCategoria = lancamentos.reduce((acc, l) => {
+                acc[l.categoria] = (acc[l.categoria] || 0) + l.valor;
+                return acc;
+            }, {});
+
+            const categorias = Object.entries(totalPorCategoria)
+                .sort((a, b) => b[1] - a[1]);
+
+            categoriasResumo.innerHTML = '';
+            if (categorias.length === 0) {
+                categoriasResumo.innerHTML = '<div class="category-card"><strong>Sem dados</strong><span>Adicione lançamentos para ver o resumo por categoria.</span></div>';
+                return;
+            }
+
+            categorias.slice(0, 9).forEach(([categoria, total]) => {
+                const card = document.createElement('div');
+                card.className = 'category-card';
+                card.innerHTML = `<strong>${categoria}</strong><span>${formatarDinheiro(total)} em ${categoria}</span>`;
+                categoriasResumo.appendChild(card);
+            });
+        }
+
+        function criarTagTipo(tipo) {
+            const span = document.createElement('span');
+            span.className = `tag ${tipo}`;
+            span.textContent = tipo === 'receita' ? 'Receita' : tipo === 'despesa' ? 'Despesa' : tipo === 'divida' ? 'Dívida' : 'Pagamento';
+            return span;
+        }
+
+        function renderizarTabela() {
+            lancamentosTabela.innerHTML = '';
+            const itens = getLancamentosFiltrados();
+            if (itens.length === 0) {
+                const vazio = document.createElement('tr');
+                vazio.innerHTML = '<td colspan="5" style="text-align:center; color:var(--muted);">Nenhum lançamento encontrado</td>';
+                lancamentosTabela.appendChild(vazio);
+                return;
+            }
+
+            itens
+                .slice()
+                .sort((a, b) => new Date(b.data) - new Date(a.data))
+                .forEach(l => {
+                    const row = document.createElement('tr');
+                    const tdData = document.createElement('td');
+                    const tdDescricao = document.createElement('td');
+                    const tdTipo = document.createElement('td');
+                    const tdCategoria = document.createElement('td');
+                    const tdValor = document.createElement('td');
+
+                    tdData.textContent = l.data;
+                    tdDescricao.textContent = l.descricao || 'Sem descrição';
+                    tdTipo.appendChild(criarTagTipo(l.tipo));
+                    tdCategoria.textContent = l.categoria;
+                    tdValor.textContent = formatarDinheiro(l.valor);
+                    tdValor.style.fontWeight = '700';
+                    tdValor.style.color = l.tipo === 'receita' ? '#8bffcb' : '#ff9aa1';
+
+                    row.appendChild(tdData);
+                    row.appendChild(tdDescricao);
+                    row.appendChild(tdTipo);
+                    row.appendChild(tdCategoria);
+                    row.appendChild(tdValor);
+                    lancamentosTabela.appendChild(row);
+                });
+        }
+
+        function salvarLocal() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(lancamentos));
+        }
+
+        function exportarCSV() {
+            if (lancamentos.length === 0) {
+                alert('Não há lançamentos para exportar.');
+                return;
+            }
+
+            const cabecalho = ['Data', 'Descrição', 'Tipo', 'Categoria', 'Valor'];
+            const linhas = lancamentos
+                .slice()
+                .sort((a, b) => new Date(b.data) - new Date(a.data))
+                .map(l => [
+                    l.data,
+                    l.descricao || 'Sem descrição',
+                    l.tipo,
+                    l.categoria,
+                    l.valor.toFixed(2).replace('.', ',')
+                ]);
+
+            const csv = [cabecalho, ...linhas]
+                .map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(','))
+                .join('\r\n');
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const hoje = new Date().toISOString().slice(0, 10);
+            link.href = url;
+            link.download = `contadiarias_${hoje}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        function carregarLocal() {
+            const salvo = localStorage.getItem(STORAGE_KEY);
+            if (!salvo) return;
+            try {
+                const dados = JSON.parse(salvo);
+                if (Array.isArray(dados)) lancamentos = dados;
+            } catch (e) {
+                console.warn('Erro ao ler dados salvos', e);
+            }
+        }
+
+        function resetFormulario() {
+            inputValor.value = '';
+            inputDescricao.value = '';
+            inputCategoria.value = '';
+            inputTipo.value = '';
+            inputData.value = new Date().toISOString().slice(0, 10);
+        }
+
+        function adicionarLancamento() {
+            const data = inputData.value;
+            const valor = parseFloat(inputValor.value.replace(',', '.'));
+            const tipo = inputTipo.value;
+            const descricao = inputDescricao.value.trim();
+            const categoria = inputCategoria.value;
+
+            if (!data || !valor || isNaN(valor) || valor <= 0 || !tipo || !categoria) {
+                alert('Preencha data, tipo, categoria e um valor válido maior que zero.');
+                return;
+            }
+
+            lancamentos.push({ data, valor, tipo, descricao, categoria });
+            salvarLocal();
+            renderizarTabela();
+            atualizarResumo();
+            resetFormulario();
+        }
+
+        btnSalvar.addEventListener('click', adicionarLancamento);
+        btnLimpar.addEventListener('click', () => {
+            const confirmar = confirm('Deseja apagar todos os lançamentos? Esta ação não pode ser desfeita.');
+            if (!confirmar) return;
+            lancamentos = [];
+            salvarLocal();
+            renderizarTabela();
+            atualizarResumo();
+        });
+        btnExportar.addEventListener('click', exportarCSV);
+        filtroTipo.addEventListener('change', renderizarTabela);
+        filtroBusca.addEventListener('input', renderizarTabela);
+
+        window.addEventListener('load', () => {
+            const storageOk = storageDisponivel();
+            if (!storageOk) {
+                mostrarMensagem('Seu navegador não permite armazenamento local. O histórico pode não ser salvo no celular. Abra o app em um navegador moderno ou use "Adicionar à tela inicial".', 'warning');
+            } else if (window.location.protocol === 'file:') {
+                mostrarMensagem('Se o app estiver aberto pelo caminho local (file://), o histórico pode não ser guardado em alguns celulares. Prefira abrir no navegador e usar "Adicionar à tela inicial" ou hospedar o app via HTTP.', 'info');
+                carregarLocal();
+            } else {
+                carregarLocal();
+            }
+
+            resetFormulario();
+            renderizarTabela();
+            atualizarResumo();
+        });
+    </script>
+</body>
+
+</html>
