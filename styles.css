@@ -286,13 +286,121 @@ button:hover {
 .buttons {
     display: grid;
     gap: 10px;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
 .buttons button.clear {
     background: rgba(0, 0, 0, 0.16);
     color: var(--text);
 }
+
+.category-manager {
+    margin-top: 16px;
+    padding: 18px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(248, 212, 75, 0.16);
+}
+
+.category-manager-title {
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 12px;
+}
+
+.category-manager-row {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: 1fr auto;
+    align-items: flex-end;
+}
+
+.category-manager input[type="text"] {
+    width: 100%;
+}
+
+.category-list {
+    margin-top: 14px;
+    display: grid;
+    gap: 10px;
+}
+
+.category-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(0, 0, 0, 0.10);
+    border: 1px solid rgba(248, 212, 75, 0.14);
+}
+
+.category-item button {
+    width: auto;
+    border-radius: 12px;
+    padding: 8px 12px;
+    background: rgba(195, 47, 39, 0.16);
+    color: #fff;
+    border: 1px solid rgba(195, 47, 39, 0.22);
+    cursor: pointer;
+}
+
+.category-item button:hover {
+    filter: brightness(1.08);
+}
+
+.btn-edit,
+.btn-delete {
+    width: auto;
+    margin-right: 8px;
+    border-radius: 14px;
+    padding: 8px 12px;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+
+/* Vencimento highlights */
+.overdue {
+    background: rgba(195, 47, 39, 0.12) !important;
+    border-left: 4px solid rgba(195, 47, 39, 0.9);
+}
+.overdue td {
+    color: #ffd6d6;
+}
+.due-soon {
+    background: rgba(248, 212, 75, 0.08) !important;
+    border-left: 4px solid rgba(248, 212, 75, 0.9);
+}
+
+/* Banner específico para vencimentos */
+#vencimentosBanner {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+}
+
+#vencimentosBanner .clear {
+    padding: 6px 10px;
+}
+
+.btn-edit {
+    background: rgba(248, 212, 75, 0.16);
+    color: var(--text);
+    border: 1px solid rgba(248, 212, 75, 0.22);
+}
+
+.btn-delete {
+    background: rgba(195, 47, 39, 0.16);
+    color: #fff;
+    border: 1px solid rgba(195, 47, 39, 0.22);
+}
+
+.btn-edit:hover,
+.btn-delete:hover {
+    filter: brightness(1.08);
+}
+
 
 .buttons button.clear:hover {
     background: rgba(255, 255, 255, 0.08);

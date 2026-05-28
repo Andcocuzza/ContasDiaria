@@ -18,6 +18,14 @@
         <p>Registre entradas, saídas, débitos e créditos. Veja seu saldo e quanto guardar para pagar dívidas.</p>
     </header>
     <div id="mensagemBanner" class="banner warning" hidden></div>
+    <div id="vencimentosBanner" class="banner warning" hidden>
+        <span id="vencimentosText"></span>
+        <button id="vencimentosClose" class="clear" style="margin-left:12px;">Fechar</button>
+    </div>
+    <div id="headerVencimentos" style="position:absolute; right:18px; top:18px;">
+        <button id="headerVencBtn" title="Débitos vencidos" class="clear">Venc: <span
+                id="vencimentosCount">0</span></button>
+    </div>
     <main class="container">
         <section class="card summary" aria-label="Resumo diário">
             <div>
@@ -139,11 +147,22 @@
                     </select>
                 </label>
             </div>
+            <div class="category-manager">
+                <div class="category-manager-title">Gerenciar categorias</div>
+                <div class="category-manager-row">
+                    <input type="text" id="inputNovaCategoria" placeholder="Nova categoria" />
+                    <button type="button" class="clear" id="btnAdicionarCategoria">Adicionar categoria</button>
+                </div>
+                <div id="listaCategoriasPersonalizadas" class="category-list"></div>
+            </div>
             <div class="buttons">
                 <button id="btnSalvar">Salvar lançamento</button>
+                <button class="clear" id="btnCancelar" hidden>Cancelar edição</button>
                 <button class="clear" id="btnLimpar">Limpar registros</button>
                 <button class="clear" id="btnExportar">Exportar CSV</button>
+                <button class="clear" id="btnImportar">Importar CSV</button>
             </div>
+            <input type="file" id="inputCsvFile" style="display:none;" accept=".csv,text/csv" />
 
             <h2 style="margin-top:24px;">Histórico</h2>
             <div style="overflow-x:auto;">
@@ -151,6 +170,7 @@
                     <thead>
                         <tr>
                             <th>Data</th>
+                            <th>Venc.</th>
                             <th>Descrição</th>
                             <th>Tipo</th>
                             <th>Categoria</th>
@@ -160,7 +180,7 @@
                     </thead>
                     <tbody id="lancamentosTabela">
                         <tr>
-                            <td colspan="6" style="text-align:center; color:var(--muted);">Nenhum lançamento ainda</td>
+                            <td colspan="7" style="text-align:center; color:var(--muted);">Nenhum lançamento ainda</td>
                         </tr>
                     </tbody>
                 </table>
@@ -179,6 +199,10 @@
                 <label>
                     Valor mensal
                     <input type="number" id="inputRecValor" step="0.01" placeholder="0.00" />
+                </label>
+                <label>
+                    Dia vencimento
+                    <input type="number" id="inputRecDia" min="1" max="31" placeholder="1" />
                 </label>
             </div>
             <div class="form-row">
@@ -251,6 +275,16 @@
                 <button id="btnBackupDownload">📥 Baixar Backup (JSON)</button>
                 <button class="clear" id="btnBackupUpload">📤 Restaurar do Backup</button>
             </div>
+            <div style="margin-top:18px;">
+                <label style="display:flex; gap:12px; align-items:center; margin-bottom:8px; color:var(--muted);">
+                    Avisar antes (dias)
+                    <input type="number" id="inputDiasAviso" min="0" max="30" value="7" style="width:80px;" />
+                </label>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <button id="btnSalvarAviso">Salvar aviso</button>
+                    <button id="btnAtivarNotificacoes" class="clear">Ativar notificações do navegador</button>
+                </div>
+            </div>
             <input type="file" id="inputBackupFile" style="display:none;" accept=".json" />
             <div
                 style="background:rgba(28,100,52,0.16); padding:14px; border-radius:12px; border:1px solid rgba(40,160,80,0.22); margin-top:18px;">
@@ -281,14 +315,25 @@
             banner.textContent = texto;
             banner.className = `banner ${tipo}`;
             banner.hidden = false;
+            if (mensagemTimer) clearTimeout(mensagemTimer);
+            mensagemTimer = setTimeout(() => {
+                banner.hidden = true;
+            }, 3600);
         }
         const inputValor = document.getElementById('inputValor');
         const inputTipo = document.getElementById('inputTipo');
         const inputDescricao = document.getElementById('inputDescricao');
         const inputCategoria = document.getElementById('inputCategoria');
         const btnSalvar = document.getElementById('btnSalvar');
+        const btnCancelar = document.getElementById('btnCancelar');
         const btnLimpar = document.getElementById('btnLimpar');
         const btnExportar = document.getElementById('btnExportar');
+        const btnImportar = document.getElementById('btnImportar');
+        const inputCsvFile = document.getElementById('inputCsvFile');
+        const inputNovaCategoria = document.getElementById('inputNovaCategoria');
+        const btnAdicionarCategoria = document.getElementById('btnAdicionarCategoria');
+        const listaCategoriasPersonalizadas = document.getElementById('listaCategoriasPersonalizadas');
+        const inputRecCategoria = document.getElementById('inputRecCategoria');
         const filtroTipo = document.getElementById('filtroTipo');
         const filtroBusca = document.getElementById('filtroBusca');
         const totalReceita = document.getElementById('totalReceita');
@@ -302,8 +347,22 @@
         const dividaHoje = document.getElementById('dividaHoje');
         const categoriasResumo = document.getElementById('categoriasResumo');
         const lancamentosTabela = document.getElementById('lancamentosTabela');
+        const vencimentosBanner = document.getElementById('vencimentosBanner');
+        const vencimentosText = document.getElementById('vencimentosText');
+        const vencimentosClose = document.getElementById('vencimentosClose');
+        const vencimentosCount = document.getElementById('vencimentosCount');
+        const headerVencBtn = document.getElementById('headerVencBtn');
+        const inputDiasAviso = document.getElementById('inputDiasAviso');
+        const btnSalvarAviso = document.getElementById('btnSalvarAviso');
+        const btnAtivarNotificacoes = document.getElementById('btnAtivarNotificacoes');
+
+        const CATEGORIES_KEY = 'contadiarias-categorias';
+        const defaultCategories = ['Alimentação', 'Transporte', 'Casa', 'Trabalho', 'Saúde', 'Outros'];
 
         let lancamentos = [];
+        let categories = [];
+        let editingIndex = null;
+        let mensagemTimer = null;
 
         function formatarDinheiro(valor) {
             return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -390,6 +449,108 @@
                 card.innerHTML = `<strong>${categoria}</strong><span>${formatarDinheiro(total)} em ${categoria}</span>`;
                 categoriasResumo.appendChild(card);
             });
+            // after re-rendering categories, check vencimentos
+            verificarVencimentos();
+        }
+
+        if (vencimentosClose) {
+            vencimentosClose.addEventListener('click', () => {
+                if (vencimentosBanner) vencimentosBanner.hidden = true;
+            });
+        }
+
+        const WARNING_KEY = 'contadiarias-warning-days';
+        const LAST_NOTIFY_KEY = 'contadiarias-last-notify';
+
+        function carregarConfiguracoes() {
+            const val = localStorage.getItem(WARNING_KEY);
+            const dias = val ? parseInt(val, 10) : 7;
+            if (inputDiasAviso) inputDiasAviso.value = dias;
+            return dias;
+        }
+
+        function salvarConfiguracoes(dias) {
+            localStorage.setItem(WARNING_KEY, String(dias));
+        }
+
+        function requestNotificationPermission() {
+            if (!('Notification' in window)) {
+                alert('Notificações de navegador não são suportadas neste browser.');
+                return;
+            }
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    alert('Notificações ativadas.');
+                } else {
+                    alert('Notificações negadas.');
+                }
+            });
+        }
+
+        function enviarNotificacaoResumo(vencidasCount, proximasCount) {
+            if (!('Notification' in window)) return;
+            if (Notification.permission !== 'granted') return;
+            const key = `v:${vencidasCount}-p:${proximasCount}`;
+            const last = sessionStorage.getItem(LAST_NOTIFY_KEY);
+            if (last === key) return; // evitar repetição
+            sessionStorage.setItem(LAST_NOTIFY_KEY, key);
+            const title = vencidasCount ? `Você tem ${vencidasCount} dívida(s) vencida(s)` : `Débitos próximos: ${proximasCount}`;
+            const body = vencidasCount ? `Abra o app para ver e pagar suas dívidas vencidas.` : `Algumas dívidas vencem em breve.`;
+            try {
+                new Notification(title, { body });
+            } catch (e) { /* ignore */ }
+        }
+
+        function verificarVencimentos(diasAviso = null) {
+            if (diasAviso === null) diasAviso = carregarConfiguracoes();
+            if (!Array.isArray(lancamentos)) return;
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+            const vencidas = [];
+            const proximas = [];
+
+            lancamentos.forEach(l => {
+                if (l.tipo !== 'divida') return;
+                const venc = l.vencimento || l.data;
+                if (!venc) return;
+                const d = new Date(venc);
+                d.setHours(0, 0, 0, 0);
+                const diff = Math.ceil((d - hoje) / (1000 * 60 * 60 * 24));
+                if (diff < 0) {
+                    vencidas.push({ l, diff });
+                } else if (diff <= diasAviso) {
+                    proximas.push({ l, diff });
+                }
+            });
+
+            const totalVencidas = vencidas.length;
+            const totalProximas = proximas.length;
+
+            if (vencidas.length === 0 && proximas.length === 0) {
+                if (vencimentosBanner) vencimentosBanner.hidden = true;
+                if (vencimentosCount) vencimentosCount.textContent = '0';
+                if (headerVencBtn) headerVencBtn.style.display = 'none';
+                return;
+            }
+
+            let parts = [];
+            if (vencidas.length) {
+                parts.push(`Dívidas vencidas: ${vencidas.map(x => x.l.descricao || x.l.categoria).slice(0, 5).join(', ')}${vencidas.length > 5 ? (' e mais ' + (vencidas.length - 5)) : ''}`);
+            }
+            if (proximas.length) {
+                parts.push(`Próximas a vencer: ${proximas.map(x => x.l.descricao || x.l.categoria).slice(0, 5).join(', ')}${proximas.length > 5 ? (' e mais ' + (proximas.length - 5)) : ''}`);
+            }
+
+            if (vencimentosText) vencimentosText.textContent = parts.join(' • ');
+            if (vencimentosBanner) {
+                vencimentosBanner.className = `banner ${vencidas.length ? 'warning' : 'info'}`;
+                vencimentosBanner.hidden = false;
+            }
+            if (vencimentosCount) vencimentosCount.textContent = String(totalVencidas);
+            if (headerVencBtn) headerVencBtn.style.display = 'inline-block';
+
+            // enviar notificação única por estado
+            enviarNotificacaoResumo(totalVencidas, totalProximas);
         }
 
         function criarTagTipo(tipo) {
@@ -411,8 +572,10 @@
             const itens = getLancamentosFiltrados();
             if (itens.length === 0) {
                 const vazio = document.createElement('tr');
-                vazio.innerHTML = '<td colspan="6" style="text-align:center; color:var(--muted);">Nenhum lançamento encontrado</td>';
+                vazio.innerHTML = '<td colspan="7" style="text-align:center; color:var(--muted);">Nenhum lançamento encontrado</td>';
                 lancamentosTabela.appendChild(vazio);
+                // atualizar avisos quando não houver lançamentos
+                verificarVencimentos();
                 return;
             }
 
@@ -423,6 +586,7 @@
                     const index = lancamentos.indexOf(l);
                     const row = document.createElement('tr');
                     const tdData = document.createElement('td');
+                    const tdVenc = document.createElement('td');
                     const tdDescricao = document.createElement('td');
                     const tdTipo = document.createElement('td');
                     const tdCategoria = document.createElement('td');
@@ -430,12 +594,35 @@
                     const tdAcao = document.createElement('td');
 
                     tdData.textContent = l.data;
+                    tdVenc.textContent = l.vencimento ? new Date(l.vencimento).toLocaleDateString('pt-BR') : (l.data ? new Date(l.data).toLocaleDateString('pt-BR') : '');
                     tdDescricao.textContent = l.descricao || 'Sem descrição';
                     tdTipo.appendChild(criarTagTipo(l.tipo));
                     tdCategoria.textContent = l.categoria;
                     tdValor.textContent = formatarDinheiro(l.valor);
                     tdValor.style.fontWeight = '700';
                     tdValor.style.color = l.tipo === 'receita' ? '#8bffcb' : '#ff9aa1';
+
+                    // highlight rows for vencimento
+                    try {
+                        if (l.vencimento) {
+                            const hoje = new Date();
+                            hoje.setHours(0, 0, 0, 0);
+                            const d = new Date(l.vencimento);
+                            d.setHours(0, 0, 0, 0);
+                            const diff = Math.ceil((d - hoje) / (1000 * 60 * 60 * 24));
+                            if (diff < 0) {
+                                row.classList.add('overdue');
+                            } else if (diff <= 3) {
+                                row.classList.add('due-soon');
+                            }
+                        }
+                    } catch (e) { /* ignore parse errors */ }
+
+                    const btnEdit = document.createElement('button');
+                    btnEdit.className = 'btn-edit';
+                    btnEdit.textContent = 'Editar';
+                    btnEdit.onclick = () => editarLancamento(index);
+                    tdAcao.appendChild(btnEdit);
 
                     const btnDel = document.createElement('button');
                     btnDel.className = 'btn-delete';
@@ -444,6 +631,7 @@
                     tdAcao.appendChild(btnDel);
 
                     row.appendChild(tdData);
+                    row.appendChild(tdVenc);
                     row.appendChild(tdDescricao);
                     row.appendChild(tdTipo);
                     row.appendChild(tdCategoria);
@@ -451,10 +639,58 @@
                     row.appendChild(tdAcao);
                     lancamentosTabela.appendChild(row);
                 });
+            // após renderizar todas as linhas, verificar vencimentos
+            verificarVencimentos();
         }
 
         function salvarLocal() {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(lancamentos));
+        }
+
+        function aplicarPagamento(data, valorOriginal, categoriaPreferida) {
+            let remaining = Number(Number(valorOriginal).toFixed(2));
+            if (!Number.isFinite(remaining) || remaining <= 0) return 0;
+
+            // aplica primeiro em dívidas da mesma categoria (mais antigas)
+            const pegarProximaDivida = () => {
+                const dividas = lancamentos
+                    .map((l, i) => ({ l, i }))
+                    .filter(x => x.l.tipo === 'divida')
+                    .sort((a, b) => new Date(a.l.data) - new Date(b.l.data));
+
+                if (!dividas.length) return null;
+                const mesmaCat = dividas.find(d => d.l.categoria === categoriaPreferida);
+                return mesmaCat || dividas[0];
+            };
+
+            let aplicados = 0;
+            while (remaining > 0) {
+                const prox = pegarProximaDivida();
+                if (!prox) break;
+                const div = prox.l;
+                const idx = prox.i;
+                const valorDiv = Number(Number(div.valor).toFixed(2));
+
+                if (valorDiv <= remaining + 0.001) {
+                    // quita a dívida
+                    remaining = Number((remaining - valorDiv).toFixed(2));
+                    lancamentos.splice(idx, 1);
+                    aplicados += 1;
+                } else {
+                    // paga parcialmente
+                    div.valor = Number((valorDiv - remaining).toFixed(2));
+                    remaining = 0;
+                    aplicados += 1;
+                }
+            }
+
+            if (aplicados > 0) {
+                salvarLocal();
+                renderizarTabela();
+                atualizarResumo();
+            }
+
+            return Number(Number(valorOriginal - remaining).toFixed(2));
         }
 
         function exportarCSV() {
@@ -491,6 +727,121 @@
             URL.revokeObjectURL(url);
         }
 
+        function splitCsvLine(line, delimiter = ',') {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"') {
+                    if (inQuotes && line[i + 1] === '"') {
+                        current += '"';
+                        i += 1;
+                    } else {
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === delimiter && !inQuotes) {
+                    result.push(current);
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            result.push(current);
+            return result;
+        }
+
+        function importarCSV() {
+            if (!inputCsvFile) return;
+            inputCsvFile.value = '';
+            inputCsvFile.click();
+        }
+
+        function processarCsv(file) {
+            const reader = new FileReader();
+            reader.onload = event => {
+                const texto = event.target.result;
+                const linhas = texto.split(/\r?\n/).filter(line => line.trim() !== '');
+                if (linhas.length <= 1) {
+                    mostrarMensagem('Arquivo CSV vazio ou com cabeçalho apenas.', 'warning');
+                    return;
+                }
+
+                const hasComma = linhas[0].includes(',');
+                const hasSemicolon = linhas[0].includes(';');
+                const hasTab = linhas[0].includes('\t');
+                let delimiter = ',';
+                if (hasTab) {
+                    delimiter = '\t';
+                } else if (hasSemicolon && !hasComma) {
+                    delimiter = ';';
+                } else if (hasSemicolon && hasComma) {
+                    delimiter = linhas[0].split(';').length > linhas[0].split(',').length ? ';' : ',';
+                }
+
+                const header = splitCsvLine(linhas[0], delimiter).map(h => h.trim().toLowerCase());
+                const idxData = header.indexOf('data');
+                const idxDescricao = header.indexOf('descrição') !== -1 ? header.indexOf('descrição') : header.indexOf('descricao');
+                const idxTipo = header.indexOf('tipo');
+                const idxCategoria = header.indexOf('categoria');
+                const idxValor = header.indexOf('valor');
+
+                if (idxData === -1 || idxTipo === -1 || idxCategoria === -1 || idxValor === -1) {
+                    mostrarMensagem('Cabeçalho inválido. Use Data, Descrição, Tipo, Categoria e Valor.', 'warning');
+                    return;
+                }
+
+                let adicionados = 0;
+                let ignorados = 0;
+                linhas.slice(1).forEach(linha => {
+                    const cols = splitCsvLine(linha, delimiter).map(c => c.trim().replace(/^"|"$/g, ''));
+                    const data = cols[idxData] || '';
+                    const descricao = cols[idxDescricao] || '';
+                    const tipo = (cols[idxTipo] || '').toLowerCase();
+                    const categoria = cols[idxCategoria] || '';
+                    const valor = parseFloat((cols[idxValor] || '').replace(/[\.\s]/g, '').replace(',', '.'));
+
+                    if (!data || !tipo || !categoria || !Number.isFinite(valor) || valor <= 0) {
+                        ignorados += 1;
+                        return;
+                    }
+
+                    if (!['receita', 'despesa', 'divida', 'pagamento'].includes(tipo)) {
+                        ignorados += 1;
+                        return;
+                    }
+
+                    if (!categories.includes(categoria)) {
+                        categories.push(categoria);
+                    }
+
+                    if (tipo === 'pagamento') {
+                        const aplicado = aplicarPagamento(data, valor, categoria);
+                        // mesmo que não exista dívida correspondente, ainda registramos o pagamento
+                        // para histórico e rastreabilidade
+                        lancamentos.push({ data, descricao, tipo, categoria, valor });
+                        adicionados += 1;
+                    } else {
+                        lancamentos.push({ data, descricao, tipo, categoria, valor });
+                        adicionados += 1;
+                    }
+                });
+
+                if (adicionados > 0) {
+                    salvarCategorias();
+                    atualizarCategoriasDropdowns();
+                    renderizarCategorias();
+                    salvarLocal();
+                    renderizarTabela();
+                    atualizarResumo();
+                    mostrarMensagem(`${adicionados} lançamentos importados${ignorados ? `, ${ignorados} ignorados` : ''}.`, 'success');
+                } else {
+                    mostrarMensagem('Nenhum lançamento válido encontrado no CSV.', 'warning');
+                }
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
         function carregarLocal() {
             const salvo = localStorage.getItem(STORAGE_KEY);
             if (!salvo) return;
@@ -502,12 +853,138 @@
             }
         }
 
+        function salvarCategorias() {
+            localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories));
+        }
+
+        function atualizarCategoriasDropdowns() {
+            [inputCategoria, inputRecCategoria].forEach(select => {
+                if (!select) return;
+                const valorAtual = select.value;
+                select.innerHTML = '<option value="" disabled selected>Selecione a categoria</option>';
+                categories.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat;
+                    option.textContent = cat;
+                    select.appendChild(option);
+                });
+                if (categories.includes(valorAtual)) {
+                    select.value = valorAtual;
+                }
+            });
+        }
+
+        function renderizarCategorias() {
+            if (!listaCategoriasPersonalizadas) return;
+            listaCategoriasPersonalizadas.innerHTML = '';
+            if (categories.length === 0) {
+                listaCategoriasPersonalizadas.innerHTML = '<p style="color:var(--muted);">Nenhuma categoria encontrada.</p>';
+                return;
+            }
+            categories.forEach(cat => {
+                const item = document.createElement('div');
+                item.className = 'category-item';
+
+                const label = document.createElement('span');
+                label.textContent = cat;
+
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.textContent = 'Remover';
+                button.onclick = () => removerCategoria(cat);
+
+                item.appendChild(label);
+                item.appendChild(button);
+                listaCategoriasPersonalizadas.appendChild(item);
+            });
+        }
+
+        function carregarCategorias() {
+            const salvo = localStorage.getItem(CATEGORIES_KEY);
+            if (salvo) {
+                try {
+                    const dados = JSON.parse(salvo);
+                    if (Array.isArray(dados) && dados.length) {
+                        categories = dados;
+                    } else {
+                        categories = defaultCategories.slice();
+                    }
+                } catch (e) {
+                    categories = defaultCategories.slice();
+                }
+            } else {
+                categories = defaultCategories.slice();
+            }
+            atualizarCategoriasDropdowns();
+            renderizarCategorias();
+        }
+
+        function adicionarCategoria() {
+            const categoria = inputNovaCategoria.value.trim();
+            if (!categoria) {
+                mostrarMensagem('Digite uma categoria válida.', 'warning');
+                return;
+            }
+            if (categories.includes(categoria)) {
+                mostrarMensagem('Essa categoria já existe.', 'warning');
+                return;
+            }
+            categories.push(categoria);
+            salvarCategorias();
+            atualizarCategoriasDropdowns();
+            renderizarCategorias();
+            inputNovaCategoria.value = '';
+            mostrarMensagem('Categoria adicionada!', 'success');
+        }
+
+        function removerCategoria(categoria) {
+            const confirmar = confirm(`Deseja remover a categoria "${categoria}"? Lançamentos existentes não serão alterados.`);
+            if (!confirmar) return;
+            categories = categories.filter(c => c !== categoria);
+            salvarCategorias();
+            atualizarCategoriasDropdowns();
+            renderizarCategorias();
+            mostrarMensagem(`Categoria "${categoria}" removida.`, 'info');
+            if (inputCategoria.value === categoria) inputCategoria.value = '';
+            if (inputRecCategoria && inputRecCategoria.value === categoria) inputRecCategoria.value = '';
+        }
+
+        function atualizarBotaoSalvar() {
+            if (editingIndex === null) {
+                btnSalvar.textContent = 'Salvar lançamento';
+                btnCancelar.hidden = true;
+            } else {
+                btnSalvar.textContent = 'Atualizar lançamento';
+                btnCancelar.hidden = false;
+            }
+        }
+
         function resetFormulario() {
             inputValor.value = '';
             inputDescricao.value = '';
             inputCategoria.value = '';
             inputTipo.value = '';
             inputData.value = new Date().toISOString().slice(0, 10);
+            editingIndex = null;
+            atualizarBotaoSalvar();
+        }
+
+        function editarLancamento(index) {
+            const lancamento = lancamentos[index];
+            if (!lancamento) return;
+            inputData.value = lancamento.data;
+            inputValor.value = lancamento.valor.toString().replace('.', ',');
+            inputTipo.value = lancamento.tipo;
+            inputDescricao.value = lancamento.descricao || '';
+            inputCategoria.value = lancamento.categoria;
+            editingIndex = index;
+            atualizarBotaoSalvar();
+            mostrarMensagem('Edição ativada. Atualize o lançamento ou cancele.', 'info');
+        }
+
+        function cancelarEdicao() {
+            resetFormulario();
+            mostrarMensagem('Edição cancelada.', 'info');
         }
 
         function adicionarLancamento() {
@@ -517,12 +994,29 @@
             const descricao = inputDescricao.value.trim();
             const categoria = inputCategoria.value;
 
-            if (!data || !valor || isNaN(valor) || valor <= 0 || !tipo || !categoria) {
-                alert('Preencha data, tipo, categoria e um valor válido maior que zero.');
+            if (!data || !valor || !Number.isFinite(valor) || valor <= 0 || !tipo || !categoria) {
+                mostrarMensagem('Preencha data, tipo, categoria e um valor válido maior que zero.', 'warning');
                 return;
             }
 
-            lancamentos.push({ data, valor, tipo, descricao, categoria });
+            if (tipo === 'pagamento') {
+                // aplica pagamento às dívidas existentes (priorizando mesma categoria)
+                const aplicado = aplicarPagamento(data, valor, categoria);
+                if (aplicado > 0) {
+                    mostrarMensagem(`Pagamento de ${formatarDinheiro(aplicado)} aplicado a dívidas.`, 'success');
+                } else {
+                    mostrarMensagem('Pagamento registrado, nenhuma dívida encontrada para aplicar.', 'info');
+                }
+            }
+
+            if (editingIndex === null) {
+                lancamentos.push({ data, valor, tipo, descricao, categoria });
+                if (tipo !== 'pagamento') mostrarMensagem('Lançamento salvo com sucesso!', 'success');
+            } else {
+                lancamentos[editingIndex] = { data, valor, tipo, descricao, categoria };
+                mostrarMensagem('Lançamento atualizado com sucesso!', 'success');
+            }
+
             salvarLocal();
             renderizarTabela();
             atualizarResumo();
@@ -530,6 +1024,7 @@
         }
 
         btnSalvar.addEventListener('click', adicionarLancamento);
+        if (btnCancelar) btnCancelar.addEventListener('click', cancelarEdicao);
         btnLimpar.addEventListener('click', () => {
             const confirmar = confirm('Deseja apagar todos os lançamentos? Esta ação não pode ser desfeita.');
             if (!confirmar) return;
@@ -539,8 +1034,30 @@
             atualizarResumo();
         });
         btnExportar.addEventListener('click', exportarCSV);
+        if (btnImportar) btnImportar.addEventListener('click', importarCSV);
+        if (inputCsvFile) inputCsvFile.addEventListener('change', event => {
+            const file = event.target.files[0];
+            if (file) processarCsv(file);
+        });
+        if (btnAdicionarCategoria) btnAdicionarCategoria.addEventListener('click', adicionarCategoria);
         filtroTipo.addEventListener('change', renderizarTabela);
         filtroBusca.addEventListener('input', renderizarTabela);
+
+        // listeners para configurações e notificações
+        if (btnSalvarAviso) btnSalvarAviso.addEventListener('click', () => {
+            const val = parseInt(inputDiasAviso.value, 10) || 0;
+            salvarConfiguracoes(val);
+            mostrarMensagem(`Aviso definido para ${val} dia(s).`, 'info');
+            verificarVencimentos(val);
+        });
+
+        if (btnAtivarNotificacoes) btnAtivarNotificacoes.addEventListener('click', () => {
+            requestNotificationPermission();
+        });
+
+        if (headerVencBtn) headerVencBtn.addEventListener('click', () => {
+            if (vencimentosBanner) vencimentosBanner.hidden = !vencimentosBanner.hidden;
+        });
 
         window.addEventListener('load', () => {
             const storageOk = storageDisponivel();
@@ -553,6 +1070,7 @@
                 carregarLocal();
             }
 
+            carregarCategorias();
             resetFormulario();
             renderizarTabela();
             atualizarResumo();

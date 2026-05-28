@@ -35,18 +35,20 @@ function adicionarRecorrente() {
     const descricao = document.getElementById('inputRecDescricao').value.trim();
     const valor = parseFloat(document.getElementById('inputRecValor').value.replace(',', '.'));
     const categoria = document.getElementById('inputRecCategoria').value;
+    const diaInput = document.getElementById('inputRecDia');
+    const dia = diaInput ? parseInt(diaInput.value, 10) : 1;
 
-    if (!descricao || !valor || isNaN(valor) || valor <= 0 || !categoria) {
+    if (!descricao || !valor || isNaN(valor) || valor <= 0 || !categoria || !Number.isFinite(dia) || dia < 1 || dia > 31) {
         alert('Preencha descrição, valor e categoria.');
         return;
     }
-
-    recorrentes.push({ descricao, valor, categoria, id: Date.now() });
+    recorrentes.push({ descricao, valor, categoria, dia: Math.min(31, Math.max(1, dia)), id: Date.now() });
     salvarRecorrentes();
     renderizarRecorrentes();
     document.getElementById('inputRecDescricao').value = '';
     document.getElementById('inputRecValor').value = '';
     document.getElementById('inputRecCategoria').value = '';
+    if (diaInput) diaInput.value = '';
 }
 
 function deletarRecorrente(id) {
@@ -66,7 +68,7 @@ function renderizarRecorrentes() {
         <div class="recurringDebtItem">
             <div class="recurringDebtInfo">
                 <strong>${r.descricao}</strong>
-                <small>${r.categoria} • ${formatarDinheiro(r.valor)}/mês</small>
+                <small>${r.categoria} • ${formatarDinheiro(r.valor)}/mês • Venc: ${r.dia || 1}</small>
             </div>
             <button class="btn-small danger" onclick="deletarRecorrente(${r.id})">Remover</button>
         </div>
@@ -83,14 +85,22 @@ function aplicarRecorrentesEsteMes() {
         return;
     }
 
-    const primeiroDoMes = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-01`;
+    const year = hoje.getFullYear();
+    const month = hoje.getMonth() + 1; // 1-based
+    const lastDay = new Date(year, month, 0).getDate();
     recorrentes.forEach(r => {
+        const dia = Math.min(r.dia || 1, lastDay);
+        const padMonth = String(month).padStart(2, '0');
+        const padDay = String(dia).padStart(2, '0');
+        const vencimento = `${year}-${padMonth}-${padDay}`;
         lancamentos.push({
-            data: primeiroDoMes,
+            data: vencimento,
+            vencimento: vencimento,
             valor: r.valor,
             tipo: 'divida',
             descricao: `[Recorrente] ${r.descricao}`,
-            categoria: r.categoria
+            categoria: r.categoria,
+            origemRecorrenteId: r.id
         });
     });
 
@@ -98,7 +108,7 @@ function aplicarRecorrentesEsteMes() {
     localStorage.setItem(aplicadosKey, 'true');
     renderizarTabela();
     atualizarResumo();
-    alert(`${recorrentes.length} débitos recorrentes aplicados ao 1º do mês!`);
+    alert(`${recorrentes.length} débitos recorrentes aplicados (com vencimentos).`);
 }
 
 // ===== RELATÓRIOS E GRÁFICOS =====
