@@ -20,7 +20,7 @@
     <div id="mensagemBanner" class="banner warning" hidden></div>
     <div id="vencimentosBanner" class="banner warning" hidden>
         <span id="vencimentosText"></span>
-        <button id="vencimentosClose" class="clear" style="margin-left:12px;">Fechar</button>
+        <button id="vencimentosClose" class="clear" style="margin-left:12px;">Conta vencida</button>
     </div>
     <div id="headerVencimentos" style="position:absolute; right:18px; top:18px;">
         <button id="headerVencBtn" title="Débitos vencidos" class="clear">Venc: <span
@@ -147,13 +147,14 @@
                     </select>
                 </label>
             </div>
-            <div class="category-manager">
-                <div class="category-manager-title">Gerenciar categorias</div>
+            <div class="category-manager collapsed">
+                <div class="category-manager-title">Gerenciar categorias <button id="toggleCategoriaManager"
+                        class="small-toggle" aria-expanded="false" title="Mostrar/ocultar">▾</button></div>
                 <div class="category-manager-row">
                     <input type="text" id="inputNovaCategoria" placeholder="Nova categoria" />
                     <button type="button" class="clear" id="btnAdicionarCategoria">Adicionar categoria</button>
                 </div>
-                <div id="listaCategoriasPersonalizadas" class="category-list"></div>
+                <div id="listaCategoriasPersonalizadas" class="category-list compact"></div>
             </div>
             <div class="buttons">
                 <button id="btnSalvar">Salvar lançamento</button>
@@ -366,6 +367,20 @@
 
         function formatarDinheiro(valor) {
             return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        function parseMoney(input) {
+            if (typeof input === 'number') return Number(input);
+            if (!input && input !== 0) return NaN;
+            let s = String(input).trim();
+            if (s.indexOf('.') > -1 && s.indexOf(',') > -1) {
+                s = s.replace(/\./g, '').replace(',', '.');
+            } else if (s.indexOf(',') > -1) {
+                s = s.replace(',', '.');
+            }
+            s = s.replace(/[^0-9.\-]/g, '');
+            const n = parseFloat(s);
+            return Number.isFinite(n) ? n : NaN;
         }
 
         function atualizarResumo() {
@@ -799,7 +814,7 @@
                     const descricao = cols[idxDescricao] || '';
                     const tipo = (cols[idxTipo] || '').toLowerCase();
                     const categoria = cols[idxCategoria] || '';
-                    const valor = parseFloat((cols[idxValor] || '').replace(/[\.\s]/g, '').replace(',', '.'));
+                    const valor = parseMoney(cols[idxValor] || '');
 
                     if (!data || !tipo || !categoria || !Number.isFinite(valor) || valor <= 0) {
                         ignorados += 1;
@@ -989,7 +1004,7 @@
 
         function adicionarLancamento() {
             const data = inputData.value;
-            const valor = parseFloat(inputValor.value.replace(',', '.'));
+            const valor = parseMoney(inputValor.value);
             const tipo = inputTipo.value;
             const descricao = inputDescricao.value.trim();
             const categoria = inputCategoria.value;
@@ -1040,6 +1055,14 @@
             if (file) processarCsv(file);
         });
         if (btnAdicionarCategoria) btnAdicionarCategoria.addEventListener('click', adicionarCategoria);
+        const toggleCategoriaManager = document.getElementById('toggleCategoriaManager');
+        if (toggleCategoriaManager) toggleCategoriaManager.addEventListener('click', () => {
+            const container = document.querySelector('.category-manager');
+            if (!container) return;
+            const collapsed = container.classList.toggle('collapsed');
+            toggleCategoriaManager.textContent = collapsed ? '▾' : '▴';
+            toggleCategoriaManager.setAttribute('aria-expanded', String(!collapsed));
+        });
         filtroTipo.addEventListener('change', renderizarTabela);
         filtroBusca.addEventListener('input', renderizarTabela);
 

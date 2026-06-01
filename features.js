@@ -33,7 +33,7 @@ function carregarRecorrentes() {
 
 function adicionarRecorrente() {
     const descricao = document.getElementById('inputRecDescricao').value.trim();
-    const valor = parseFloat(document.getElementById('inputRecValor').value.replace(',', '.'));
+    const valor = parseMoney(document.getElementById('inputRecValor').value);
     const categoria = document.getElementById('inputRecCategoria').value;
     const diaInput = document.getElementById('inputRecDia');
     const dia = diaInput ? parseInt(diaInput.value, 10) : 1;
