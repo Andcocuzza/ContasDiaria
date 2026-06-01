@@ -31,6 +31,31 @@ function carregarRecorrentes() {
     }
 }
 
+function aplicarRecorrenteAoMes(recorrente) {
+    const hoje = new Date();
+    const year = hoje.getFullYear();
+    const month = hoje.getMonth() + 1;
+    const lastDay = new Date(year, month, 0).getDate();
+    const dia = Math.min(recorrente.dia || 1, lastDay);
+    const padMonth = String(month).padStart(2, '0');
+    const padDay = String(dia).padStart(2, '0');
+    const vencimento = `${year}-${padMonth}-${padDay}`;
+
+    const jaExiste = lancamentos.some(l => l.tipo === 'divida' && l.origemRecorrenteId === recorrente.id && l.vencimento === vencimento);
+    if (jaExiste) return false;
+
+    lancamentos.push({
+        data: vencimento,
+        vencimento: vencimento,
+        valor: recorrente.valor,
+        tipo: 'divida',
+        descricao: `[Recorrente] ${recorrente.descricao}`,
+        categoria: recorrente.categoria,
+        origemRecorrenteId: recorrente.id
+    });
+    return true;
+}
+
 function adicionarRecorrente() {
     const descricao = document.getElementById('inputRecDescricao').value.trim();
     const valor = parseMoney(document.getElementById('inputRecValor').value);
@@ -45,6 +70,7 @@ function adicionarRecorrente() {
     recorrentes.push({ descricao, valor, categoria, dia: Math.min(31, Math.max(1, dia)), id: Date.now() });
     salvarRecorrentes();
     renderizarRecorrentes();
+    aplicarRecorrentesEsteMes(true);
     document.getElementById('inputRecDescricao').value = '';
     document.getElementById('inputRecValor').value = '';
     document.getElementById('inputRecCategoria').value = '';
@@ -68,47 +94,32 @@ function renderizarRecorrentes() {
         <div class="recurringDebtItem">
             <div class="recurringDebtInfo">
                 <strong>${r.descricao}</strong>
-                <small>${r.categoria} • ${formatarDinheiro(r.valor)}/mês • Venc: ${r.dia || 1}</small>
+                <small>${r.categoria} • ${formatarDinheiro(r.valor)}/mês • Vencimento: dia ${r.dia || 1}</small>
             </div>
             <button class="btn-small danger" onclick="deletarRecorrente(${r.id})">Remover</button>
         </div>
     `).join('');
 }
 
-function aplicarRecorrentesEsteMes() {
+function aplicarRecorrentesEsteMes(silent = falsesilent = false) {
     const hoje = new Date();
     const mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
     const aplicadosKey = `contadiarias-recorrentes-aplicados-${mesAtual}`;
 
-    if (localStorage.getItem(aplicadosKey)) {
-        alert('Débitos recorrentes deste mês já foram aplicados!');
-        return;
-    }
-
-    const year = hoje.getFullYear();
-    const month = hoje.getMonth() + 1; // 1-based
-    const lastDay = new Date(year, month, 0).getDate();
+    let aplicados = 0;
     recorrentes.forEach(r => {
-        const dia = Math.min(r.dia || 1, lastDay);
-        const padMonth = String(month).padStart(2, '0');
-        const padDay = String(dia).padStart(2, '0');
-        const vencimento = `${year}-${padMonth}-${padDay}`;
-        lancamentos.push({
-            data: vencimento,
-            vencimento: vencimento,
-            valor: r.valor,
-            tipo: 'divida',
-            descricao: `[Recorrente] ${r.descricao}`,
-            categoria: r.categoria,
-            origemRecorrenteId: r.id
-        });
+        if (aplicarRecorrenteAoMes(r)) aplicados += 1;
     });
 
-    salvarLocal();
-    localStorage.setItem(aplicadosKey, 'true');
-    renderizarTabela();
-    atualizarResumo();
-    alert(`${recorrentes.length} débitos recorrentes aplicados (com vencimentos).`);
+    if (aplicados > 0) {
+        salvarLocal();
+        localStorage.setItem(aplicadosKey, 'true');
+        renderizarTabela();
+        atualizarResumo();
+        if (!silent) alert(`${aplicados} débitos recorrentes aplicados (com vencimentos).`);
+    } else if (!silent) {
+        alert('Débitos recorrentes deste mês já foram aplicados!');
+    }
 }
 
 // ===== RELATÓRIOS E GRÁFICOS =====

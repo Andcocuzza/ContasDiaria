@@ -34,19 +34,23 @@
             </div>
             <div>
                 <strong id="totalDespesa">R$ 0,00</strong>
-                Despesa total
+                Saídas totais
             </div>
             <div>
                 <strong id="saldo">R$ 0,00</strong>
-                Saldo atual
+                Saldo disponível
             </div>
             <div>
                 <strong id="totalDividas">R$ 0,00</strong>
                 Dívidas pendentes
             </div>
             <div>
-                <strong id="paraGuardar">R$ 0,00</strong>
-                Guardar para pagar dívida
+                <strong id="saldoLiquido">R$ 0,00</strong>
+                Saldo após pagar dívidas
+            </div>
+            <div class="summary-note">
+                Saldo disponível é o que você tem agora. Saldo após pagar dívidas mostra quanto sobraria se todas as
+                dívidas pendentes fossem quitadas.
             </div>
         </section>
 
@@ -204,6 +208,8 @@
                 <label>
                     Dia vencimento
                     <input type="number" id="inputRecDia" min="1" max="31" placeholder="1" />
+                    <small style="color: var(--muted); font-size:0.9rem; margin-top:6px; display:block;">Será gerado
+                        automaticamente no mês atual como dívida com vencimento.</small>
                 </label>
             </div>
             <div class="form-row">
@@ -341,7 +347,7 @@
         const totalDespesa = document.getElementById('totalDespesa');
         const saldo = document.getElementById('saldo');
         const totalDividas = document.getElementById('totalDividas');
-        const paraGuardar = document.getElementById('paraGuardar');
+        const saldoLiquido = document.getElementById('saldoLiquido');
         const resultadoDia = document.getElementById('resultadoDia');
         const receitaHoje = document.getElementById('receitaHoje');
         const despesaHoje = document.getElementById('despesaHoje');
@@ -405,8 +411,8 @@
             const saldoAtual = receita - despesa - pagamentos;
             saldo.textContent = formatarDinheiro(saldoAtual);
 
-            const guardar = Math.max(0, dividasPendentes);
-            paraGuardar.textContent = formatarDinheiro(guardar);
+            const saldoLiquidoValor = saldoAtual - dividasPendentes;
+            saldoLiquido.textContent = formatarDinheiro(saldoLiquidoValor);
             atualizarIndicadoresHoje();
             atualizarCategoriaResumo();
         }
@@ -1093,6 +1099,7 @@
                 carregarLocal();
             }
 
+            aplicarRecorrentesEsteMes(true);
             carregarCategorias();
             resetFormulario();
             renderizarTabela();
