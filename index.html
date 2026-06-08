@@ -14,9 +14,26 @@
 
 <body>
     <header>
-        <h1>ContaDiárias</h1>
+        <button id="btnMenuToggle" class="menu-toggle" aria-label="Abrir menu">☰</button>
+        <h1>ContasDiárias</h1>
         <p>Registre entradas, saídas, débitos e créditos. Veja seu saldo e quanto guardar para pagar dívidas.</p>
     </header>
+    <div id="sideMenu" class="side-menu" hidden>
+        <button id="btnFecharMenu" class="menu-close" aria-label="Fechar menu">×</button>
+        <nav class="side-menu-nav" aria-label="Menu de navegação principal">
+            <button type="button" data-tab="lancamentos" onclick="abrirAba('lancamentos'); fecharMenu();">Tela
+                Principal</button>
+            <button type="button" data-tab="recurentes" onclick="abrirAba('recurentes'); fecharMenu();">Débitos
+                Recorrentes</button>
+            <button type="button" data-tab="relatorios"
+                onclick="abrirAba('relatorios'); fecharMenu();">Relatórios</button>
+            <button type="button" data-tab="configuracao"
+                onclick="abrirAba('configuracao'); fecharMenu();">Backup</button>
+            <button type="button" data-tab="categorias" onclick="abrirAba('categorias'); fecharMenu();">Resumo por
+                categoria</button>
+        </nav>
+    </div>
+    <div id="menuOverlay" class="menu-overlay" hidden></div>
     <div id="mensagemBanner" class="banner warning" hidden></div>
     <div id="vencimentosBanner" class="banner warning" hidden>
         <span id="vencimentosText"></span>
@@ -27,30 +44,24 @@
                 id="vencimentosCount">0</span></button>
     </div>
     <main class="container">
-        <section class="card summary" aria-label="Resumo diário">
-            <div>
-                <strong id="totalReceita">R$ 0,00</strong>
-                Receita total
-            </div>
-            <div>
-                <strong id="totalDespesa">R$ 0,00</strong>
-                Saídas totais
-            </div>
-            <div>
-                <strong id="saldo">R$ 0,00</strong>
-                Saldo disponível
-            </div>
-            <div>
-                <strong id="totalDividas">R$ 0,00</strong>
-                Dívidas pendentes
-            </div>
-            <div>
-                <strong id="saldoLiquido">R$ 0,00</strong>
-                Saldo após pagar dívidas
-            </div>
-            <div class="summary-note">
-                Saldo disponível é o que você tem agora. Saldo após pagar dívidas mostra quanto sobraria se todas as
-                dívidas pendentes fossem quitadas.
+        <section class="card main-dashboard" aria-label="Painel principal">
+            <div class="dashboard-grid">
+                <div>
+                    <strong id="mainEntrada">R$ 0,00</strong>
+                    Entrada
+                </div>
+                <div>
+                    <strong id="mainSaida">R$ 0,00</strong>
+                    Saída
+                </div>
+                <div>
+                    <strong id="mainTenho">R$ 0,00</strong>
+                    Tenho ainda
+                </div>
+                <div>
+                    <strong id="mainDividas">R$ 0,00</strong>
+                    Dívidas pendentes
+                </div>
             </div>
         </section>
 
@@ -92,20 +103,22 @@
             </div>
         </section>
 
-        <section class="card" aria-label="Resumo por categoria">
+        <section class="card" aria-label="Navegação de seções">
+            <div class="tabs">
+                <button class="tab-button active" data-tab="lancamentos"
+                    onclick="abrirAba('lancamentos')">Lançamentos</button>
+                <button class="tab-button" data-tab="recurentes" onclick="abrirAba('recurentes')">Débitos
+                    Recorrentes</button>
+                <button class="tab-button" data-tab="relatorios" onclick="abrirAba('relatorios')">Relatórios</button>
+                <button class="tab-button" data-tab="configuracao" onclick="abrirAba('configuracao')">Backup</button>
+            </div>
+        </section>
+
+        <section class="card tab-content" id="aba-categorias" aria-label="Resumo por categoria">
             <h2 style="margin-top:0;">Resumo por categoria</h2>
             <div class="category-grid" id="categoriasResumo">
                 <div class="category-card"><strong>Sem dados</strong><span>Adicione lançamentos para ver o resumo por
                         categoria.</span></div>
-            </div>
-        </section>
-
-        <section class="card" aria-label="Navegação de seções">
-            <div class="tabs">
-                <button class="tab-button active" onclick="abrirAba('lancamentos')">Lançamentos</button>
-                <button class="tab-button" onclick="abrirAba('recurentes')">Débitos Recorrentes</button>
-                <button class="tab-button" onclick="abrirAba('relatorios')">Relatórios</button>
-                <button class="tab-button" onclick="abrirAba('configuracao')">Backup</button>
             </div>
         </section>
 
@@ -168,9 +181,8 @@
                 <button class="clear" id="btnImportar">Importar CSV</button>
             </div>
             <input type="file" id="inputCsvFile" style="display:none;" accept=".csv,text/csv" />
-
-            <h2 style="margin-top:24px;">Histórico</h2>
-            <div style="overflow-x:auto;">
+            <h3 style="margin-top:20px; color:var(--accent);">Histórico</h3>
+            <div class="history-wrapper">
                 <table>
                     <thead>
                         <tr>
@@ -194,7 +206,8 @@
 
         <section class="card tab-content" id="aba-recurentes" aria-label="Seção de débitos recorrentes">
             <h2 style="margin-top:0;">Débitos Recorrentes Mensais</h2>
-            <p style="color:var(--muted); font-size:0.95rem; margin-bottom:18px;">Configure dívidas que se repetem todo
+            <p style="color:var(--muted); font-size:0.95rem; margin-bottom:18px;">Configure dívidas que se repetem
+                todo
                 mês (aluguel, internet, etc). Elas aparecerão automaticamente no 1º dia do mês.</p>
             <div class="form-row">
                 <label>
@@ -271,12 +284,37 @@
                         <strong style="color:var(--accent); font-size:1.3rem;" id="relMediaGasto">R$ 0,00</strong>
                     </div>
                 </div>
+                <hr style="margin:18px 0; border-color: rgba(255,255,255,0.04);" />
+                <div class="summary"
+                    style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:12px; margin-top:8px;">
+                    <div>
+                        <small style="color:var(--muted);">Entrada (total)</small>
+                        <strong id="totalReceita" style="font-size:1.1rem;">R$ 0,00</strong>
+                    </div>
+                    <div>
+                        <small style="color:var(--muted);">Saída (total)</small>
+                        <strong id="totalDespesa" style="font-size:1.1rem;">R$ 0,00</strong>
+                    </div>
+                    <div>
+                        <small style="color:var(--muted);">Tenho ainda</small>
+                        <strong id="saldo" style="font-size:1.1rem;">R$ 0,00</strong>
+                    </div>
+                    <div>
+                        <small style="color:var(--muted);">Dívidas pendentes</small>
+                        <strong id="totalDividas" style="font-size:1.1rem;">R$ 0,00</strong>
+                    </div>
+                    <div>
+                        <small style="color:var(--muted);">Saldo após dívidas</small>
+                        <strong id="saldoLiquido" style="font-size:1.1rem;">R$ 0,00</strong>
+                    </div>
+                </div>
             </div>
         </section>
 
         <section class="card tab-content" id="aba-configuracao" aria-label="Seção de backup">
             <h2 style="margin-top:0;">Backup e Configuração</h2>
-            <p style="color:var(--muted); margin-bottom:18px;">Faça backup dos seus dados para recuperar posteriormente
+            <p style="color:var(--muted); margin-bottom:18px;">Faça backup dos seus dados para recuperar
+                posteriormente
                 ou em outro dispositivo.</p>
             <div class="buttons">
                 <button id="btnBackupDownload">📥 Baixar Backup (JSON)</button>
@@ -295,7 +333,8 @@
             <input type="file" id="inputBackupFile" style="display:none;" accept=".json" />
             <div
                 style="background:rgba(28,100,52,0.16); padding:14px; border-radius:12px; border:1px solid rgba(40,160,80,0.22); margin-top:18px;">
-                <small style="color:var(--muted);">✓ Seu backup é salvo localmente no navegador automaticamente a cada
+                <small style="color:var(--muted);">✓ Seu backup é salvo localmente no navegador automaticamente a
+                    cada
                     lançamento.</small>
             </div>
         </section>
@@ -348,6 +387,14 @@
         const saldo = document.getElementById('saldo');
         const totalDividas = document.getElementById('totalDividas');
         const saldoLiquido = document.getElementById('saldoLiquido');
+        const mainEntrada = document.getElementById('mainEntrada');
+        const mainSaida = document.getElementById('mainSaida');
+        const mainTenho = document.getElementById('mainTenho');
+        const mainDividas = document.getElementById('mainDividas');
+        const btnMenuToggle = document.getElementById('btnMenuToggle');
+        const btnFecharMenu = document.getElementById('btnFecharMenu');
+        const sideMenu = document.getElementById('sideMenu');
+        const menuOverlay = document.getElementById('menuOverlay');
         const resultadoDia = document.getElementById('resultadoDia');
         const receitaHoje = document.getElementById('receitaHoje');
         const despesaHoje = document.getElementById('despesaHoje');
@@ -405,11 +452,16 @@
 
             totalReceita.textContent = formatarDinheiro(receita);
             totalDespesa.textContent = formatarDinheiro(despesa + pagamentos);
-            // Dívidas pendentes = dívidas registradas menos o que já foi pago
-            const dividasPendentes = Math.max(0, dividas - pagamentos);
+            // Dívidas pendentes = total de dívidas restantes após aplicar pagamentos
+            const dividasPendentes = Math.max(0, dividas);
             totalDividas.textContent = formatarDinheiro(dividasPendentes);
             const saldoAtual = receita - despesa - pagamentos;
             saldo.textContent = formatarDinheiro(saldoAtual);
+
+            if (mainEntrada) mainEntrada.textContent = formatarDinheiro(receita);
+            if (mainSaida) mainSaida.textContent = formatarDinheiro(despesa + pagamentos);
+            if (mainTenho) mainTenho.textContent = formatarDinheiro(saldoAtual);
+            if (mainDividas) mainDividas.textContent = formatarDinheiro(dividasPendentes);
 
             const saldoLiquidoValor = saldoAtual - dividasPendentes;
             saldoLiquido.textContent = formatarDinheiro(saldoLiquidoValor);
@@ -586,6 +638,28 @@
             salvarLocal();
             renderizarTabela();
             atualizarResumo();
+            verificarVencimentos();
+        }
+
+        function pagarDivida(index) {
+            const lanc = lancamentos[index];
+            if (!lanc || lanc.tipo !== 'divida') return;
+            const confirmado = confirm(`Marcar a dívida "${lanc.descricao || lanc.categoria}" de ${formatarDinheiro(lanc.valor)} como paga?`);
+            if (!confirmado) return;
+
+            const pago = lanc.valor;
+            const data = new Date().toISOString().slice(0, 10);
+            const descricao = lanc.descricao ? `Pagamento de ${lanc.descricao}` : 'Pagamento de dívida';
+            const categoria = lanc.categoria;
+
+            lancamentos.splice(index, 1);
+            lancamentos.push({ data, valor: pago, tipo: 'pagamento', descricao, categoria });
+            salvarLocal();
+            renderizarTabela();
+            atualizarResumo();
+            verificarVencimentos();
+            mostrarMensagem(`Dívida paga: ${formatarDinheiro(pago)}.`, 'success');
+            return true;
         }
 
         function renderizarTabela() {
@@ -638,6 +712,27 @@
                             }
                         }
                     } catch (e) { /* ignore parse errors */ }
+
+                    if (l.tipo === 'divida') {
+                        const btnPaid = document.createElement('button');
+                        btnPaid.className = 'btn-paid';
+                        btnPaid.textContent = 'Pagar';
+                        btnPaid.onclick = () => {
+                            const pagoComSucesso = pagarDivida(index);
+                            if (pagoComSucesso) {
+                                btnPaid.textContent = 'Pago';
+                                btnPaid.classList.add('paid');
+                                btnPaid.disabled = true;
+                            }
+                        };
+                        tdAcao.appendChild(btnPaid);
+                    } else if (l.tipo === 'pagamento') {
+                        const btnPaid = document.createElement('button');
+                        btnPaid.className = 'btn-paid paid';
+                        btnPaid.textContent = 'Pago';
+                        btnPaid.disabled = true;
+                        tdAcao.appendChild(btnPaid);
+                    }
 
                     const btnEdit = document.createElement('button');
                     btnEdit.className = 'btn-edit';
@@ -709,6 +804,7 @@
                 salvarLocal();
                 renderizarTabela();
                 atualizarResumo();
+                verificarVencimentos();
             }
 
             return Number(Number(valorOriginal - remaining).toFixed(2));
@@ -838,10 +934,18 @@
 
                     if (tipo === 'pagamento') {
                         const aplicado = aplicarPagamento(data, valor, categoria);
-                        // mesmo que não exista dívida correspondente, ainda registramos o pagamento
-                        // para histórico e rastreabilidade
-                        lancamentos.push({ data, descricao, tipo, categoria, valor });
-                        adicionados += 1;
+                        const restante = Number((valor - aplicado).toFixed(2));
+                        if (aplicado > 0) {
+                            lancamentos.push({ data, descricao, tipo: 'pagamento', categoria, valor: aplicado });
+                            adicionados += 1;
+                        }
+                        if (restante > 0) {
+                            lancamentos.push({ data, descricao, tipo: 'despesa', categoria, valor: restante });
+                            adicionados += 1;
+                        }
+                        if (aplicado === 0 && restante === 0) {
+                            // valor inválido ou zero — ignore
+                        }
                     } else {
                         lancamentos.push({ data, descricao, tipo, categoria, valor });
                         adicionados += 1;
@@ -990,6 +1094,49 @@
             atualizarBotaoSalvar();
         }
 
+        function fecharMenu() {
+            if (!sideMenu || !menuOverlay) return;
+            sideMenu.classList.remove('open');
+            menuOverlay.classList.remove('open');
+            document.body.classList.remove('menu-open');
+            // remove destaque dos botões do menu
+            document.querySelectorAll('.side-menu-nav button').forEach(b => b.classList.remove('active'));
+            window.setTimeout(() => {
+                if (!sideMenu.classList.contains('open')) {
+                    menuOverlay.hidden = true;
+                }
+            }, 250);
+        }
+
+        function abrirMenu() {
+            if (!sideMenu || !menuOverlay) return;
+            sideMenu.hidden = false;
+            menuOverlay.hidden = false;
+            window.requestAnimationFrame(() => {
+                sideMenu.classList.add('open');
+                menuOverlay.classList.add('open');
+                document.body.classList.add('menu-open');
+                // foco para acessibilidade
+                sideMenu.setAttribute('tabindex', '-1');
+                sideMenu.focus();
+                // destacar o botão que corresponde à aba ativa
+                const ativa = document.querySelector('.tab-content.active');
+                if (ativa && ativa.id) {
+                    const nome = ativa.id.replace('aba-', '');
+                    const bot = document.querySelector('.side-menu-nav button[data-tab="' + nome + '"]');
+                    if (bot) bot.classList.add('active');
+                }
+            });
+        }
+
+        function toggleMenu() {
+            if (sideMenu && sideMenu.classList.contains('open')) {
+                fecharMenu();
+            } else {
+                abrirMenu();
+            }
+        }
+
         function editarLancamento(index) {
             const lancamento = lancamentos[index];
             if (!lancamento) return;
@@ -1020,27 +1167,46 @@
                 return;
             }
 
-            if (tipo === 'pagamento') {
-                // aplica pagamento às dívidas existentes (priorizando mesma categoria)
-                const aplicado = aplicarPagamento(data, valor, categoria);
-                if (aplicado > 0) {
-                    mostrarMensagem(`Pagamento de ${formatarDinheiro(aplicado)} aplicado a dívidas.`, 'success');
-                } else {
-                    mostrarMensagem('Pagamento registrado, nenhuma dívida encontrada para aplicar.', 'info');
-                }
+            // autotag: se categoria for 'salario' forçar receita
+            let finalTipo = tipo;
+            if (categoria && String(categoria).trim().toLowerCase() === 'salario') {
+                finalTipo = 'receita';
             }
 
-            if (editingIndex === null) {
-                lancamentos.push({ data, valor, tipo, descricao, categoria });
-                if (tipo !== 'pagamento') mostrarMensagem('Lançamento salvo com sucesso!', 'success');
+            if (finalTipo === 'pagamento') {
+                // aplica pagamento às dívidas existentes (priorizando mesma categoria)
+                const aplicado = aplicarPagamento(data, valor, categoria);
+                const restante = Number((valor - aplicado).toFixed(2));
+
+                if (aplicado > 0) {
+                    // registrar apenas o valor aplicado como pagamento para rastreabilidade
+                    lancamentos.push({ data, valor: aplicado, tipo: 'pagamento', descricao, categoria });
+                    mostrarMensagem(`Pagamento de ${formatarDinheiro(aplicado)} aplicado a dívidas.`, 'success');
+                }
+
+                if (restante > 0) {
+                    // restante vira despesa (compra)
+                    lancamentos.push({ data, valor: restante, tipo: 'despesa', descricao: descricao || 'Despesa via pagamento', categoria });
+                    mostrarMensagem(`R$ ${restante.toFixed(2)} registrados como despesa (restante do pagamento).`, 'info');
+                }
+
+                if (aplicado === 0 && restante === 0) {
+                    mostrarMensagem('Pagamento registrado.', 'info');
+                }
             } else {
-                lancamentos[editingIndex] = { data, valor, tipo, descricao, categoria };
-                mostrarMensagem('Lançamento atualizado com sucesso!', 'success');
+                if (editingIndex === null) {
+                    lancamentos.push({ data, valor, tipo: finalTipo, descricao, categoria });
+                    if (finalTipo !== 'pagamento') mostrarMensagem('Lançamento salvo com sucesso!', 'success');
+                } else {
+                    lancamentos[editingIndex] = { data, valor, tipo: finalTipo, descricao, categoria };
+                    mostrarMensagem('Lançamento atualizado com sucesso!', 'success');
+                }
             }
 
             salvarLocal();
             renderizarTabela();
             atualizarResumo();
+            verificarVencimentos();
             resetFormulario();
         }
 
@@ -1071,6 +1237,22 @@
         });
         filtroTipo.addEventListener('change', renderizarTabela);
         filtroBusca.addEventListener('input', renderizarTabela);
+
+        function abrirAba(nome) {
+            // esconder todas as abas
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            // mostrar a aba alvo
+            const alvo = document.getElementById('aba-' + nome);
+            if (alvo) alvo.classList.add('active');
+            // atualizar botões de aba
+            document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+            const bot = document.querySelector('.tab-button[data-tab="' + nome + '"]');
+            if (bot) bot.classList.add('active');
+        }
+
+        if (btnMenuToggle) btnMenuToggle.addEventListener('click', toggleMenu);
+        if (btnFecharMenu) btnFecharMenu.addEventListener('click', fecharMenu);
+        if (menuOverlay) menuOverlay.addEventListener('click', fecharMenu);
 
         // listeners para configurações e notificações
         if (btnSalvarAviso) btnSalvarAviso.addEventListener('click', () => {
@@ -1104,6 +1286,8 @@
             resetFormulario();
             renderizarTabela();
             atualizarResumo();
+            // abrir por padrão a aba de categorias
+            abrirAba('categorias');
         });
     </script>
     <script src="features.js"></script>

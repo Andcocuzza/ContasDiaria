@@ -101,19 +101,92 @@ function renderizarRecorrentes() {
     `).join('');
 }
 
-function aplicarRecorrentesEsteMes(silent = falsesilent = false) {
+function aplicarRecorrentesEsteMes(silent = false) {
     const hoje = new Date();
     const mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
     const aplicadosKey = `contadiarias-recorrentes-aplicados-${mesAtual}`;
 
+    const getUltimoVencimento = (id) => {
+        const dividas = lancamentos
+            .filter(l => l.tipo === 'divida' && l.origemRecorrenteId === id && l.vencimento)
+            .map(l => l.vencimento)
+            .sort();
+        return dividas.length ? dividas[dividas.length - 1] : null;
+    };
+
+    const criarVencimento = (recorrente, year, month) => {
+        const lastDay = new Date(year, month, 0).getDate();
+        const dia = Math.min(recorrente.dia || 1, lastDay);
+        const padMonth = String(month).padStart(2, '0');
+        const padDay = String(dia).padStart(2, '0');
+        return `${year}-${padMonth}-${padDay}`;
+    };
+
+    const aplicadoIdsJson = localStorage.getItem(aplicadosKey);
+    let aplicadoIds = [];
+    if (aplicadoIdsJson) {
+        try {
+            const parsed = JSON.parse(aplicadoIdsJson);
+            aplicadoIds = Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            aplicadoIds = [];
+        }
+    }
+
     let aplicados = 0;
     recorrentes.forEach(r => {
-        if (aplicarRecorrenteAoMes(r)) aplicados += 1;
+        const ultimo = getUltimoVencimento(r.id);
+        const dataBase = ultimo ? new Date(ultimo) : null;
+        let nextYear, nextMonth;
+
+        if (dataBase) {
+            nextYear = dataBase.getFullYear();
+            nextMonth = dataBase.getMonth() + 2; // mês seguinte ao último já aplicado
+            if (nextMonth > 12) {
+                nextMonth = 1;
+                nextYear += 1;
+            }
+        } else {
+            nextYear = hoje.getFullYear();
+            nextMonth = hoje.getMonth() + 1;
+        }
+
+        const targetYear = hoje.getFullYear();
+        const targetMonth = hoje.getMonth() + 1;
+        const jaAplicadoNesteMes = aplicadoIds.includes(r.id);
+
+        while (nextYear < targetYear || (nextYear === targetYear && nextMonth <= targetMonth)) {
+            const vencimento = criarVencimento(r, nextYear, nextMonth);
+            const jaExiste = lancamentos.some(l => l.tipo === 'divida' && l.origemRecorrenteId === r.id && l.vencimento === vencimento);
+            const estaNoMesAtual = nextYear === targetYear && nextMonth === targetMonth;
+
+            if (!jaExiste && (!estaNoMesAtual || !jaAplicadoNesteMes)) {
+                lancamentos.push({
+                    data: vencimento,
+                    vencimento: vencimento,
+                    valor: r.valor,
+                    tipo: 'divida',
+                    descricao: `[Recorrente] ${r.descricao}`,
+                    categoria: r.categoria,
+                    origemRecorrenteId: r.id
+                });
+                aplicados += 1;
+                if (estaNoMesAtual && !jaAplicadoNesteMes) {
+                    aplicadoIds.push(r.id);
+                }
+            }
+
+            nextMonth += 1;
+            if (nextMonth > 12) {
+                nextMonth = 1;
+                nextYear += 1;
+            }
+        }
     });
 
     if (aplicados > 0) {
         salvarLocal();
-        localStorage.setItem(aplicadosKey, 'true');
+        localStorage.setItem(aplicadosKey, JSON.stringify(aplicadoIds));
         renderizarTabela();
         atualizarResumo();
         if (!silent) alert(`${aplicados} débitos recorrentes aplicados (com vencimentos).`);

@@ -52,6 +52,158 @@ header {
     backdrop-filter: blur(10px);
 }
 
+.menu-toggle {
+    position: fixed;
+    z-index: 220;
+    top: 18px;
+    left: 18px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(248, 212, 75, 0.25);
+    color: var(--text);
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    font-size: 1.35rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.menu-toggle:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.04);
+}
+
+.side-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 360px;
+    max-width: 90vw;
+    background: rgba(7, 24, 10, 0.98);
+    border-right: 1px solid rgba(248, 212, 75, 0.18);
+    box-shadow: 8px 0 30px rgba(0, 0, 0, 0.35);
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 100;
+    padding: 24px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    overflow-y: auto;
+}
+
+.side-menu.open {
+    transform: translateX(0);
+}
+
+.menu-close {
+    align-self: flex-end;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 2rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.side-menu-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.side-menu-nav button {
+    width: 100%;
+    background: rgba(248, 212, 75, 0.16);
+    border: 1px solid rgba(248, 212, 75, 0.25);
+    color: var(--text);
+    padding: 12px 14px;
+    border-radius: 16px;
+    cursor: pointer;
+    text-align: left;
+    font-size: 1rem;
+    transition: background 0.2s ease;
+}
+
+.side-menu-nav button:hover {
+    background: rgba(248, 212, 75, 0.24);
+}
+
+.side-menu-nav button.active {
+    background: rgba(248, 212, 75, 0.28);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+.menu-section h2 {
+    margin: 0;
+    font-size: 1rem;
+    letter-spacing: 0.05em;
+    color: #f8d44b;
+}
+
+.history-wrapper {
+    overflow: auto;
+    max-height: 60vh;
+}
+
+.history-wrapper table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 520px;
+}
+
+.history-wrapper th,
+.history-wrapper td {
+    padding: 10px 8px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    color: #f7f0c8;
+    font-size: 0.92rem;
+}
+
+.history-wrapper th {
+    color: #f8d44b;
+}
+
+.menu-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease;
+    z-index: 90;
+}
+
+.menu-overlay.open {
+    opacity: 1;
+    visibility: visible;
+}
+
+body.menu-open {
+    overflow: hidden;
+}
+
+.container.menu-open {
+    transform: scale(0.97) translateX(260px);
+    transition: transform 0.25s ease;
+}
+
+@media (max-width: 860px) {
+    .menu-toggle {
+        top: 12px;
+        left: 12px;
+    }
+    .container.menu-open {
+        transform: translateX(260px);
+    }
+}
+
 header::after {
     content: 'Registre, planeje e cuide do seu dinheiro com estilo.';
     display: block;
@@ -127,6 +279,7 @@ header p {
 .summary {
     display: grid;
     gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 .summary div {
@@ -134,6 +287,36 @@ header p {
     border-radius: 20px;
     background: rgba(255, 241, 201, 0.08);
     border: 1px solid rgba(248, 212, 75, 0.22);
+    color: #fff;
+}
+
+.main-dashboard {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.main-dashboard .dashboard-grid {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.main-dashboard .dashboard-grid div {
+    padding: 18px;
+    border-radius: 20px;
+    background: rgba(255, 241, 201, 0.08);
+    border: 1px solid rgba(248, 212, 75, 0.22);
+    color: #fff;
+}
+
+.main-dashboard .dashboard-grid strong {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 1.3rem;
+    color: #f8d44b;
+}
+
     color: #fff;
 }
 
@@ -432,12 +615,14 @@ button:hover {
 
 .btn-edit,
 .btn-delete {
-    width: auto;
+    width: 88px;
+    min-width: 88px;
     margin-right: 8px;
     border-radius: 14px;
     padding: 8px 12px;
     font-size: 0.95rem;
     cursor: pointer;
+    text-align: center;
 }
 
 /* Vencimento highlights */
@@ -473,6 +658,14 @@ button:hover {
     padding: 6px 10px;
 }
 
+.btn-edit,
+.btn-delete,
+.btn-paid {
+    width: 88px;
+    min-width: 88px;
+    text-align: center;
+}
+
 .btn-edit {
     background: rgba(248, 212, 75, 0.16);
     color: var(--text);
@@ -486,10 +679,22 @@ button:hover {
 }
 
 .btn-edit:hover,
-.btn-delete:hover {
+.btn-delete:hover,
+.btn-paid:hover {
     filter: brightness(1.08);
 }
 
+.btn-paid {
+    background: rgba(195, 47, 39, 0.16);
+    color: #fff;
+    border: 1px solid rgba(195, 47, 39, 0.22);
+}
+
+.btn-paid.paid {
+    background: rgba(40, 160, 80, 0.16);
+    color: #fff;
+    border: 1px solid rgba(40, 160, 80, 0.28);
+}
 
 .buttons button.clear:hover {
     background: rgba(255, 255, 255, 0.08);
