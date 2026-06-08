@@ -29,6 +29,7 @@
                 onclick="abrirAba('relatorios'); fecharMenu();">Relatórios</button>
             <button type="button" data-tab="configuracao"
                 onclick="abrirAba('configuracao'); fecharMenu();">Backup</button>
+            <button type="button" data-tab="historico" onclick="abrirAba('historico'); fecharMenu();">Histórico</button>
             <button type="button" data-tab="categorias" onclick="abrirAba('categorias'); fecharMenu();">Resumo por
                 categoria</button>
         </nav>
@@ -85,22 +86,6 @@
                     Dívidas hoje
                 </div>
             </div>
-            <div class="filter-panel">
-                <label>
-                    Filtrar por tipo
-                    <select id="filtroTipo">
-                        <option value="todos">Todos</option>
-                        <option value="receita">Receita</option>
-                        <option value="despesa">Despesa</option>
-                        <option value="divida">Dívida</option>
-                        <option value="pagamento">Pagamento</option>
-                    </select>
-                </label>
-                <label>
-                    Buscar descrição
-                    <input type="search" id="filtroBusca" placeholder="Procure por supermercado, luz, salário..." />
-                </label>
-            </div>
         </section>
 
         <section class="card" aria-label="Navegação de seções">
@@ -110,6 +95,7 @@
                 <button class="tab-button" data-tab="recurentes" onclick="abrirAba('recurentes')">Débitos
                     Recorrentes</button>
                 <button class="tab-button" data-tab="relatorios" onclick="abrirAba('relatorios')">Relatórios</button>
+                <button class="tab-button" data-tab="historico" onclick="abrirAba('historico')">Histórico</button>
                 <button class="tab-button" data-tab="configuracao" onclick="abrirAba('configuracao')">Backup</button>
             </div>
         </section>
@@ -181,7 +167,51 @@
                 <button class="clear" id="btnImportar">Importar CSV</button>
             </div>
             <input type="file" id="inputCsvFile" style="display:none;" accept=".csv,text/csv" />
-            <h3 style="margin-top:20px; color:var(--accent);">Histórico</h3>
+            <div class="report-preview" style="margin-top:20px;">
+                <h3 style="margin-top:0; color:var(--accent);">Relatório rápido</h3>
+                <div class="info-grid">
+                    <div class="summary-card">
+                        <strong id="mainRelReceita">R$ 0,00</strong>
+                        Receitas
+                    </div>
+                    <div class="summary-card">
+                        <strong id="mainRelDespesa">R$ 0,00</strong>
+                        Saídas
+                    </div>
+                    <div class="summary-card">
+                        <strong id="mainRelResultado">R$ 0,00</strong>
+                        Resultado
+                    </div>
+                    <div class="summary-card">
+                        <strong id="mainRelDividas">R$ 0,00</strong>
+                        Dívidas pendentes
+                    </div>
+                </div>
+                <div style="margin-top:16px;">
+                    <button class="clear" type="button" onclick="abrirAba('relatorios');">Ver relatório
+                        completo</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="card tab-content" id="aba-historico" aria-label="Seção de histórico de lançamentos">
+            <h2 style="margin-top:0;">Histórico</h2>
+            <div class="filter-panel">
+                <label>
+                    Filtrar por tipo
+                    <select id="filtroTipo">
+                        <option value="todos">Todos</option>
+                        <option value="receita">Receita</option>
+                        <option value="despesa">Despesa</option>
+                        <option value="divida">Dívida</option>
+                        <option value="pagamento">Pagamento</option>
+                    </select>
+                </label>
+                <label>
+                    Buscar descrição
+                    <input type="search" id="filtroBusca" placeholder="Procure por supermercado, luz, salário..." />
+                </label>
+            </div>
             <div class="history-wrapper">
                 <table>
                     <thead>
@@ -391,6 +421,10 @@
         const mainSaida = document.getElementById('mainSaida');
         const mainTenho = document.getElementById('mainTenho');
         const mainDividas = document.getElementById('mainDividas');
+        const mainRelReceita = document.getElementById('mainRelReceita');
+        const mainRelDespesa = document.getElementById('mainRelDespesa');
+        const mainRelResultado = document.getElementById('mainRelResultado');
+        const mainRelDividas = document.getElementById('mainRelDividas');
         const btnMenuToggle = document.getElementById('btnMenuToggle');
         const btnFecharMenu = document.getElementById('btnFecharMenu');
         const sideMenu = document.getElementById('sideMenu');
@@ -462,6 +496,10 @@
             if (mainSaida) mainSaida.textContent = formatarDinheiro(despesa + pagamentos);
             if (mainTenho) mainTenho.textContent = formatarDinheiro(saldoAtual);
             if (mainDividas) mainDividas.textContent = formatarDinheiro(dividasPendentes);
+            if (mainRelReceita) mainRelReceita.textContent = formatarDinheiro(receita);
+            if (mainRelDespesa) mainRelDespesa.textContent = formatarDinheiro(despesa + pagamentos);
+            if (mainRelResultado) mainRelResultado.textContent = formatarDinheiro(saldoAtual);
+            if (mainRelDividas) mainRelDividas.textContent = formatarDinheiro(dividasPendentes);
 
             const saldoLiquidoValor = saldoAtual - dividasPendentes;
             saldoLiquido.textContent = formatarDinheiro(saldoLiquidoValor);
@@ -737,7 +775,7 @@
                     const btnEdit = document.createElement('button');
                     btnEdit.className = 'btn-edit';
                     btnEdit.textContent = 'Editar';
-                    btnEdit.onclick = () => editarLancamento(index);
+                    btnEdit.onclick = () => editarLancamentoInline(index, row);
                     tdAcao.appendChild(btnEdit);
 
                     const btnDel = document.createElement('button');
@@ -1150,7 +1188,113 @@
             mostrarMensagem('Edição ativada. Atualize o lançamento ou cancele.', 'info');
         }
 
+        function editarLancamentoInline(index, row) {
+            if (!row || row.classList.contains('editing-row')) return;
+            const lanc = lancamentos[index];
+            if (!lanc) return;
+            row.classList.add('editing-row');
+            editingIndex = index;
+            btnSalvar.disabled = true;
+            atualizarBotaoSalvar();
+
+            const cells = row.querySelectorAll('td');
+            const [tdData, tdVenc, tdDescricao, tdTipo, tdCategoria, tdValor, tdAcao] = cells;
+
+            const inputDate = document.createElement('input');
+            inputDate.type = 'date';
+            inputDate.value = lanc.data;
+            inputDate.style.width = '100%';
+
+            const inputDescricao = document.createElement('input');
+            inputDescricao.type = 'text';
+            inputDescricao.value = lanc.descricao || '';
+            inputDescricao.style.width = '100%';
+
+            const selectTipo = document.createElement('select');
+            ['receita', 'despesa', 'divida', 'pagamento'].forEach(tipo => {
+                const option = document.createElement('option');
+                option.value = tipo;
+                option.textContent = tipo === 'receita' ? 'Receita' : tipo === 'despesa' ? 'Despesa' : tipo === 'divida' ? 'Dívida' : 'Pagamento';
+                if (tipo === lanc.tipo) option.selected = true;
+                selectTipo.appendChild(option);
+            });
+            selectTipo.style.width = '100%';
+
+            const selectCategoria = document.createElement('select');
+            categories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                if (cat === lanc.categoria) option.selected = true;
+                selectCategoria.appendChild(option);
+            });
+            selectCategoria.style.width = '100%';
+
+            const inputValor = document.createElement('input');
+            inputValor.type = 'number';
+            inputValor.step = '0.01';
+            inputValor.value = lanc.valor.toFixed(2).replace('.', ',');
+            inputValor.style.width = '100%';
+
+            tdData.innerHTML = '';
+            tdData.appendChild(inputDate);
+            tdDescricao.innerHTML = '';
+            tdDescricao.appendChild(inputDescricao);
+            tdTipo.innerHTML = '';
+            tdTipo.appendChild(selectTipo);
+            tdCategoria.innerHTML = '';
+            tdCategoria.appendChild(selectCategoria);
+            tdValor.innerHTML = '';
+            tdValor.appendChild(inputValor);
+
+            const btnSave = document.createElement('button');
+            btnSave.className = 'btn-edit';
+            btnSave.textContent = 'Salvar';
+            btnSave.onclick = () => {
+                const data = inputDate.value;
+                const descricao = inputDescricao.value.trim();
+                const tipo = selectTipo.value;
+                const categoria = selectCategoria.value;
+                const valor = parseMoney(inputValor.value);
+
+                if (!data || !valor || !Number.isFinite(valor) || valor <= 0 || !tipo || !categoria) {
+                    mostrarMensagem('Preencha data, tipo, categoria e um valor válido maior que zero.', 'warning');
+                    return;
+                }
+
+                lancamentos[index] = { data, valor, tipo, descricao, categoria, vencimento: lanc.vencimento };
+                editingIndex = null;
+                btnSalvar.disabled = false;
+                atualizarBotaoSalvar();
+                salvarLocal();
+                renderizarTabela();
+                atualizarResumo();
+                verificarVencimentos();
+                mostrarMensagem('Lançamento atualizado no histórico.', 'success');
+            };
+
+            const btnCancel = document.createElement('button');
+            btnCancel.className = 'btn-delete';
+            btnCancel.textContent = 'Cancelar';
+            btnCancel.onclick = () => {
+                editingIndex = null;
+                btnSalvar.disabled = false;
+                atualizarBotaoSalvar();
+                renderizarTabela();
+            };
+
+            tdAcao.innerHTML = '';
+            tdAcao.appendChild(btnSave);
+            tdAcao.appendChild(btnCancel);
+        }
+
         function cancelarEdicao() {
+            if (editingIndex !== null) {
+                editingIndex = null;
+                btnSalvar.disabled = false;
+                atualizarBotaoSalvar();
+                renderizarTabela();
+            }
             resetFormulario();
             mostrarMensagem('Edição cancelada.', 'info');
         }
@@ -1174,6 +1318,23 @@
             }
 
             if (finalTipo === 'pagamento') {
+                // se estivermos editando um lançamento existente, remova-o primeiro para não duplicar
+                if (editingIndex !== null) {
+                    const original = lancamentos[editingIndex];
+                    if (original && original.tipo === 'pagamento') {
+                        // atualizar diretamente um pagamento já existente
+                        lancamentos[editingIndex] = { data, valor, tipo: 'pagamento', descricao, categoria };
+                        mostrarMensagem('Pagamento atualizado com sucesso!', 'success');
+                        salvarLocal();
+                        renderizarTabela();
+                        atualizarResumo();
+                        verificarVencimentos();
+                        resetFormulario();
+                        return;
+                    }
+                    lancamentos.splice(editingIndex, 1);
+                }
+
                 // aplica pagamento às dívidas existentes (priorizando mesma categoria)
                 const aplicado = aplicarPagamento(data, valor, categoria);
                 const restante = Number((valor - aplicado).toFixed(2));
@@ -1286,8 +1447,8 @@
             resetFormulario();
             renderizarTabela();
             atualizarResumo();
-            // abrir por padrão a aba de categorias
-            abrirAba('categorias');
+            // abrir por padrão a aba de lançamentos (mostrar relatório rápido na tela principal)
+            abrirAba('lancamentos');
         });
     </script>
     <script src="features.js"></script>
