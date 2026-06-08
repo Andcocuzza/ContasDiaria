@@ -2,6 +2,7 @@
 const RECURRING_KEY = 'contadiarias-recorrentes';
 const BACKUP_KEY = 'contadiarias-backup';
 let recorrentes = [];
+let editingRecorrenteId = null;
 let chartsInstances = { gastos: null, categories: null };
 
 function abrirAba(abaName) {
@@ -62,12 +63,30 @@ function adicionarRecorrente() {
     const categoria = document.getElementById('inputRecCategoria').value;
     const diaInput = document.getElementById('inputRecDia');
     const dia = diaInput ? parseInt(diaInput.value, 10) : 1;
+    const btnAdicionarRec = document.getElementById('btnAdicionarRecorrente');
 
     if (!descricao || !valor || isNaN(valor) || valor <= 0 || !categoria || !Number.isFinite(dia) || dia < 1 || dia > 31) {
         alert('Preencha descrição, valor e categoria.');
         return;
     }
-    recorrentes.push({ descricao, valor, categoria, dia: Math.min(31, Math.max(1, dia)), id: Date.now() });
+
+    if (editingRecorrenteId !== null) {
+        const recorrente = recorrentes.find(r => r.id === editingRecorrenteId);
+        if (!recorrente) {
+            editingRecorrenteId = null;
+            renderizarRecorrentes();
+            return;
+        }
+        recorrente.descricao = descricao;
+        recorrente.valor = valor;
+        recorrente.categoria = categoria;
+        recorrente.dia = Math.min(31, Math.max(1, dia));
+        editingRecorrenteId = null;
+        if (btnAdicionarRec) btnAdicionarRec.textContent = 'Adicionar Débito Recorrente';
+    } else {
+        recorrentes.push({ descricao, valor, categoria, dia: Math.min(31, Math.max(1, dia)), id: Date.now() });
+    }
+
     salvarRecorrentes();
     renderizarRecorrentes();
     aplicarRecorrentesEsteMes(true);
@@ -79,8 +98,68 @@ function adicionarRecorrente() {
 
 function deletarRecorrente(id) {
     recorrentes = recorrentes.filter(r => r.id !== id);
+    if (editingRecorrenteId === id) {
+        editingRecorrenteId = null;
+        const btnAdicionarRec = document.getElementById('btnAdicionarRecorrente');
+        if (btnAdicionarRec) btnAdicionarRec.textContent = 'Adicionar Débito Recorrente';
+    }
     salvarRecorrentes();
     renderizarRecorrentes();
+}
+
+function getVencimentoAtualRecorrente(recorrente) {
+    const hoje = new Date();
+    const year = hoje.getFullYear();
+    const month = hoje.getMonth() + 1;
+    const lastDay = new Date(year, month, 0).getDate();
+    const dia = Math.min(recorrente.dia || 1, lastDay);
+    const padMonth = String(month).padStart(2, '0');
+    const padDay = String(dia).padStart(2, '0');
+    return `${year}-${padMonth}-${padDay}`;
+}
+
+function isRecorrentePagoEsteMes(recorrente) {
+    const hoje = new Date();
+    const mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+    return lancamentos.some(l => l.tipo === 'pagamento' && l.origemRecorrenteId === recorrente.id && l.data.slice(0, 7) === mesAtual);
+}
+
+function editarRecorrente(id) {
+    const recorrente = recorrentes.find(r => r.id === id);
+    if (!recorrente) return;
+    editingRecorrenteId = id;
+    document.getElementById('inputRecDescricao').value = recorrente.descricao;
+    document.getElementById('inputRecValor').value = recorrente.valor;
+    document.getElementById('inputRecCategoria').value = recorrente.categoria;
+    document.getElementById('inputRecDia').value = recorrente.dia;
+    const btnAdicionarRec = document.getElementById('btnAdicionarRecorrente');
+    if (btnAdicionarRec) btnAdicionarRec.textContent = 'Atualizar Débito Recorrente';
+}
+
+function pagarRecorrente(id) {
+    const recorrente = recorrentes.find(r => r.id === id);
+    if (!recorrente) return;
+
+    const ontem = new Date();
+    const year = ontem.getFullYear();
+    const month = ontem.getMonth() + 1;
+    const lastDay = new Date(year, month, 0).getDate();
+    const dia = Math.min(recorrente.dia || 1, lastDay);
+    const padMonth = String(month).padStart(2, '0');
+    const padDay = String(dia).padStart(2, '0');
+    const vencimentoAtual = `${year}-${padMonth}-${padDay}`;
+
+    aplicarRecorrenteAoMes(recorrente);
+    const index = lancamentos.findIndex(l => l.tipo === 'divida' && l.origemRecorrenteId === id && l.vencimento === vencimentoAtual);
+    if (index === -1) {
+        alert('Não foi possível localizar a dívida recorrente deste mês para pagamento.');
+        return;
+    }
+
+    const pagoComSucesso = pagarDivida(index);
+    if (pagoComSucesso) {
+        renderizarRecorrentes();
+    }
 }
 
 function renderizarRecorrentes() {
@@ -90,15 +169,25 @@ function renderizarRecorrentes() {
         return;
     }
 
-    container.innerHTML = recorrentes.map(r => `
+    container.innerHTML = recorrentes.map(r => {
+        const pago = isRecorrentePagoEsteMes(r);
+        const pagarButton = pago
+            ? `<button class="btn-small success" disabled>Pago</button>`
+            : `<button class="btn-small success" onclick="pagarRecorrente(${r.id})">Pagar</button>`;
+        return `
         <div class="recurringDebtItem">
             <div class="recurringDebtInfo">
                 <strong>${r.descricao}</strong>
                 <small>${r.categoria} • ${formatarDinheiro(r.valor)}/mês • Vencimento: dia ${r.dia || 1}</small>
             </div>
-            <button class="btn-small danger" onclick="deletarRecorrente(${r.id})">Remover</button>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
+                ${pagarButton}
+                <button class="btn-small" onclick="editarRecorrente(${r.id})">Editar</button>
+                <button class="btn-small danger" onclick="deletarRecorrente(${r.id})">Remover</button>
+            </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 function aplicarRecorrentesEsteMes(silent = false) {

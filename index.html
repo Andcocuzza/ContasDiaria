@@ -666,8 +666,25 @@
 
         function criarTagTipo(tipo) {
             const span = document.createElement('span');
-            span.className = `tag ${tipo}`;
-            span.textContent = tipo === 'receita' ? 'Receita' : tipo === 'despesa' ? 'Despesa' : tipo === 'divida' ? 'Dívida' : 'Pagamento';
+            // mapear tipo para classe e texto visível
+            if (tipo === 'receita') {
+                span.className = 'tag receita';
+                span.textContent = 'Receita';
+            } else if (tipo === 'despesa') {
+                span.className = 'tag despesa';
+                span.textContent = 'Despesa';
+            } else if (tipo === 'divida') {
+                // dívida não paga aparece como "A pagar"
+                span.className = 'tag divida';
+                span.textContent = 'A pagar';
+            } else if (tipo === 'pagamento') {
+                // pagamentos aparecem como "Pago"
+                span.className = 'tag pago';
+                span.textContent = 'Pago';
+            } else {
+                span.className = `tag ${tipo}`;
+                span.textContent = tipo;
+            }
             return span;
         }
 
@@ -751,36 +768,9 @@
                         }
                     } catch (e) { /* ignore parse errors */ }
 
-                    if (l.tipo === 'divida') {
-                        const btnPaid = document.createElement('button');
-                        btnPaid.className = 'btn-paid';
-                        btnPaid.textContent = 'Pagar';
-                        btnPaid.onclick = () => {
-                            const pagoComSucesso = pagarDivida(index);
-                            if (pagoComSucesso) {
-                                btnPaid.textContent = 'Pago';
-                                btnPaid.classList.add('paid');
-                                btnPaid.disabled = true;
-                            }
-                        };
-                        tdAcao.appendChild(btnPaid);
-                    } else if (l.tipo === 'pagamento') {
-                        const btnPaid = document.createElement('button');
-                        btnPaid.className = 'btn-paid paid';
-                        btnPaid.textContent = 'Pago';
-                        btnPaid.disabled = true;
-                        tdAcao.appendChild(btnPaid);
-                    }
-
-                    const btnEdit = document.createElement('button');
-                    btnEdit.className = 'btn-edit';
-                    btnEdit.textContent = 'Editar';
-                    btnEdit.onclick = () => editarLancamentoInline(index, row);
-                    tdAcao.appendChild(btnEdit);
-
                     const btnDel = document.createElement('button');
                     btnDel.className = 'btn-delete';
-                    btnDel.textContent = 'Deletar';
+                    btnDel.textContent = 'Remover';
                     btnDel.onclick = () => deletarLancamento(index);
                     tdAcao.appendChild(btnDel);
 
